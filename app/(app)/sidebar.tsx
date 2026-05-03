@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 
+import type { Role } from "@/lib/auth/allowlist";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -22,14 +23,25 @@ const NAV = [
   { href: "/calendario", label: "Calendario", icon: Calendar },
 ];
 
-export function Sidebar() {
+const COLABORADOR_ALLOWED = new Set(["/facturas", "/clientes", "/calendario"]);
+
+function navForRole(role: Role) {
+  if (role === "colaborador") {
+    return NAV.filter((item) => COLABORADOR_ALLOWED.has(item.href));
+  }
+  return NAV;
+}
+
+export function Sidebar({ role }: { role: Role }) {
   const pathname = usePathname();
+  const items = navForRole(role);
+  const homeHref = role === "colaborador" ? "/facturas" : "/dashboard";
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-border/60 bg-card/40 lg:flex lg:flex-col">
       <div className="flex h-16 items-center px-6">
         <Link
-          href="/dashboard"
+          href={homeHref}
           className="text-lg font-semibold tracking-tight"
         >
           <span className="text-brand">GNERAI</span>
@@ -39,7 +51,7 @@ export function Sidebar() {
 
       <nav className="flex-1 px-3 py-2">
         <ul className="space-y-1">
-          {NAV.map((item) => {
+          {items.map((item) => {
             const Icon = item.icon;
             const active =
               item.href === "/dashboard"
@@ -77,11 +89,12 @@ export function Sidebar() {
   );
 }
 
-export function MobileNav() {
+export function MobileNav({ role }: { role: Role }) {
   const pathname = usePathname();
+  const items = navForRole(role);
   return (
     <nav className="flex items-center gap-1 overflow-x-auto border-b border-border/60 bg-card/40 px-3 py-2 lg:hidden">
-      {NAV.map((item) => {
+      {items.map((item) => {
         const Icon = item.icon;
         const active =
           item.href === "/dashboard"
@@ -106,3 +119,4 @@ export function MobileNav() {
     </nav>
   );
 }
+

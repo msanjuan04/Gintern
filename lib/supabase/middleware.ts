@@ -1,7 +1,12 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { isAllowedEmail } from "@/lib/auth/allowlist";
+import {
+  getEmailRole,
+  isAllowedEmail,
+  isPathBlockedForRole,
+  landingPathForRole,
+} from "@/lib/auth/allowlist";
 
 const PUBLIC_PATHS = ["/login", "/auth/callback", "/auth/no-autorizado"];
 
@@ -62,10 +67,23 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && pathname === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+  if (user) {
+    const role = getEmailRole(user.email);
+
+    // Bloqueo de rutas según rol (colaborador no entra a dashboard,
+    // movimientos ni balance).
+    if (isPathBlockedForRole(pathname, role)) {
+      const url = request.nextUrl.clone();
+      url.pathname = landingPathForRole(role);
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname === "/login") {
+      const url = request.nextUrl.clone();
+      url.pathname = landingPathForRole(role);
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;

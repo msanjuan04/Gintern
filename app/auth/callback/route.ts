@@ -1,12 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { isAllowedEmail } from "@/lib/auth/allowlist";
+import {
+  getEmailRole,
+  isAllowedEmail,
+  landingPathForRole,
+} from "@/lib/auth/allowlist";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const redirectTo = searchParams.get("redirect") ?? "/dashboard";
+  const requestedRedirect = searchParams.get("redirect");
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=missing_code`);
@@ -21,9 +25,6 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Defensa en profundidad: cierra sesión si por alguna razón se cuela
-  // un email que no esté en la allowlist (la allowlist también se
-  // verifica antes de enviar el magic link).
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -32,5 +33,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/auth/no-autorizado`);
   }
 
+  // Sincroniza el rol desde el env var hacia public.users.
+  const role = getEmailRole(user.email);
+  if (role) {
+    await supabase.from("users").update({ role }).eq("id", user.id);
+  }
+
+  const redirectTo = requestedRedirect ?? landingPathForRole(role);
   return NextResponse.redirect(`${origin}${redirectTo}`);
 }

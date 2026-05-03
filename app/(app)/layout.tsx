@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { isAllowedEmail } from "@/lib/auth/allowlist";
+import { getEmailRole, isAllowedEmail } from "@/lib/auth/allowlist";
 import { createClient } from "@/lib/supabase/server";
 
 import { LogoutButton } from "./logout-button";
@@ -21,6 +21,8 @@ export default async function AppLayout({
     redirect("/login");
   }
 
+  const role = getEmailRole(user.email) ?? "socio";
+
   const initials = (user.email ?? "??")
     .split("@")[0]
     .split(/[._-]/)
@@ -30,7 +32,7 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar />
+      <Sidebar role={role} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-16 items-center justify-between gap-4 border-b border-border/60 bg-card/40 px-4 lg:px-8">
           <MobileHeaderTitle />
@@ -43,7 +45,7 @@ export default async function AppLayout({
               <div className="hidden flex-col items-end leading-tight sm:flex">
                 <span className="text-sm font-medium">{user.email}</span>
                 <span className="text-[11px] text-muted-foreground">
-                  Ver perfil
+                  {role === "colaborador" ? "Colaborador" : "Ver perfil"}
                 </span>
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand">
@@ -53,7 +55,7 @@ export default async function AppLayout({
             <LogoutButton />
           </div>
         </header>
-        <MobileNav />
+        <MobileNav role={role} />
         <main className="min-w-0 flex-1 px-4 py-6 lg:px-8 lg:py-10">
           {children}
         </main>

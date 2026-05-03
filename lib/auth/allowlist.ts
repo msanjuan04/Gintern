@@ -1,17 +1,56 @@
 // Allowlist de emails autorizados a entrar en GNERAI Finance.
-// Solo los dos socios pueden iniciar sesión.
-const ALLOWED_EMAILS = new Set(
+// Formato del env var ALLOWED_EMAILS:
+//   email[:role],email[:role],...
+// donde role ∈ {socio, colaborador}. Si se omite, se asume socio.
+//
+// Ejemplo:
+//   ALLOWED_EMAILS=msanjuan@gnerai.com,mcortada@gnerai.com,ayudante@gnerai.com:colaborador
+
+export type Role = "socio" | "colaborador";
+
+function parseEntry(raw: string): [string, Role] | null {
+  const trimmed = raw.trim().toLowerCase();
+  if (!trimmed) return null;
+  const [emailPart, rolePart] = trimmed.split(":");
+  const email = emailPart.trim();
+  if (!email) return null;
+  const role: Role = rolePart?.trim() === "colaborador" ? "colaborador" : "socio";
+  return [email, role];
+}
+
+const ALLOWED: Map<string, Role> = new Map(
   (process.env.ALLOWED_EMAILS ?? "msanjuan@gnerai.com,mcortada@gnerai.com")
     .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean)
+    .map(parseEntry)
+    .filter((e): e is [string, Role] => e !== null)
 );
 
 export function isAllowedEmail(email: string | null | undefined): boolean {
   if (!email) return false;
-  return ALLOWED_EMAILS.has(email.trim().toLowerCase());
+  return ALLOWED.has(email.trim().toLowerCase());
+}
+
+export function getEmailRole(email: string | null | undefined): Role | null {
+  if (!email) return null;
+  return ALLOWED.get(email.trim().toLowerCase()) ?? null;
 }
 
 export function getAllowedEmails(): string[] {
-  return Array.from(ALLOWED_EMAILS);
+  return Array.from(ALLOWED.keys());
+}
+
+// Ruta de aterrizaje según rol: socios al dashboard, colaboradores a facturas.
+export function landingPathForRole(role: Role | null): string {
+  return role === "colaborador" ? "/facturas" : "/dashboard";
+}
+
+// Rutas que un colaborador NO puede ver.
+const COLABORADOR_BLOCKED_PREFIXES = ["/dashboard", "/movimientos", "/balance"];
+
+export function isPathBlockedForRole(
+  pathname: string,
+  role: Role | null
+): boolean {
+  if (role !== "colaborador") return false;
+  return COLABORADOR_BLOCKED_PREFIXES.some((p) => pathname.startsWith(p));
 }

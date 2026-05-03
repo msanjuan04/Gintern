@@ -4,13 +4,23 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { getEmailRole } from "@/lib/auth/allowlist";
 import { createClient } from "@/lib/supabase/server";
+import type { User } from "@supabase/supabase-js";
 
 import {
   calculateMovementTotal,
   movementSchema,
   type MovementInput,
 } from "./schema";
+
+function ensureSocio(user: User | null): string | null {
+  if (!user) return "No autenticado.";
+  if (getEmailRole(user.email) === "colaborador") {
+    return "Los colaboradores no pueden gestionar movimientos.";
+  }
+  return null;
+}
 
 export type MovementFormState =
   | { status: "idle" }
@@ -81,10 +91,11 @@ export async function createMovementAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { status: "error", message: "No autenticado." };
+  const guard = ensureSocio(user);
+  if (guard) return { status: "error", message: guard };
 
   const { error } = await supabase.from("movements").insert({
-    user_id: user.id,
+    user_id: user!.id,
     invoice_id: null,
     tipo: input.tipo,
     scope: input.scope,
@@ -113,6 +124,12 @@ export async function toggleMovementCobradoAction(
   fechaCobro?: string
 ) {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const guard = ensureSocio(user);
+  if (guard) throw new Error(guard);
+
   const update: Record<string, unknown> = { cobrado };
   if (cobrado) {
     update.fecha_cobro =
@@ -132,6 +149,12 @@ export async function toggleMovementCobradoAction(
 
 export async function deleteMovementAction(id: string) {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const guard = ensureSocio(user);
+  if (guard) throw new Error(guard);
+
   // No permitimos borrar movimientos generados desde una factura
   const { data: existing } = await supabase
     .from("movements")

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { getEmailRole, landingPathForRole } from "@/lib/auth/allowlist";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
@@ -7,5 +8,6 @@ export default async function Home() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  redirect(user ? "/dashboard" : "/login");
+  if (!user) redirect("/login");
+  redirect(landingPathForRole(getEmailRole(user.email)));
 }

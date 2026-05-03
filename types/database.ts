@@ -8,6 +8,7 @@ export type RecurrenceType = "unique" | "monthly" | "quarterly" | "annual";
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "cancelled";
 export type MovementType = "income" | "expense";
 export type Scope = "gnerai" | "personal";
+export type UserRole = "socio" | "colaborador";
 
 export type UserRow = {
   id: string;
@@ -24,6 +25,7 @@ export type UserRow = {
   iva_pct: number | null;
   share_gnerai: number | null;
   telegram_chat_id: string | null;
+  role: UserRole;
   created_at: string;
 };
 

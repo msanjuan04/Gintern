@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { isAllowedEmail } from "@/lib/auth/allowlist";
+import {
+  getEmailRole,
+  isAllowedEmail,
+  landingPathForRole,
+} from "@/lib/auth/allowlist";
 import { createClient } from "@/lib/supabase/server";
 
 export type LoginState =
@@ -46,6 +50,15 @@ export async function signInWithPassword(
     };
   }
 
+  // Sincroniza el rol desde el env var hacia public.users.
+  const role = getEmailRole(email);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user && role) {
+    await supabase.from("users").update({ role }).eq("id", user.id);
+  }
+
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  redirect(landingPathForRole(role));
 }
