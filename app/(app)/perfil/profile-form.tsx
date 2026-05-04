@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState, useState, useTransition } from "react";
+import { useFormStatus } from "react-dom";
 import { CheckCircle2, Loader2, Send, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ function SaveButton() {
 }
 
 export function ProfileForm({ user }: { user: UserRow }) {
-  const [state, formAction] = useFormState(updateProfileAction, initialState);
+  const [state, formAction] = useActionState(updateProfileAction, initialState);
 
   return (
     <form action={formAction} className="space-y-6">

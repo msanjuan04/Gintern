@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
-import { useFormState } from "react-dom";
+import { useActionState, useMemo, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -43,7 +42,7 @@ function FieldError({
 }
 
 export function MovementForm({ clients }: { clients: ClientRow[] }) {
-  const [state, formAction] = useFormState(createMovementAction, initialState);
+  const [state, formAction] = useActionState(createMovementAction, initialState);
   const [, startTransition] = useTransition();
 
   const [tipo, setTipo] = useState<MovementType>("income");

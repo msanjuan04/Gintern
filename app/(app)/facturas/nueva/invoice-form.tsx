@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
-import { useFormState } from "react-dom";
+import { useActionState, useMemo, useState, useTransition } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -92,7 +91,7 @@ export function InvoiceForm({
   currentUserId: string;
   defaults?: InvoiceFormDefaults;
 }) {
-  const [state, formAction] = useFormState(createInvoiceAction, initialState);
+  const [state, formAction] = useActionState(createInvoiceAction, initialState);
   const [, startTransition] = useTransition();
 
   const [kind, setKind] = useState<InvoiceKind>(defaults?.kind ?? "client");

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -50,7 +51,7 @@ export function ClientForm({
   submitLabel?: string;
   successMessage?: string;
 }) {
-  const [state, formAction] = useFormState(action, initialState);
+  const [state, formAction] = useActionState(action, initialState);
 
   return (
     <form action={formAction} className="space-y-6">

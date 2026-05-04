@@ -1,6 +1,7 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { LogIn, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ function SubmitButton() {
 }
 
 export function LoginForm() {
-  const [state, formAction] = useFormState(signInWithPassword, initialState);
+  const [state, formAction] = useActionState(signInWithPassword, initialState);
 
   return (
     <form action={formAction} className="space-y-4">
