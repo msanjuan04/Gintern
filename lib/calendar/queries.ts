@@ -89,14 +89,15 @@ export async function listCalendarEvents(
         .lte("rotation_due_on", endISO),
     ]);
 
-  if (dueErr) throw dueErr;
-  if (paidErr) throw paidErr;
+  // Tabla legacy `invoices` eliminada en migración de limpieza: no romper calendario.
+  if (dueErr && dueErr.code !== "PGRST205") throw dueErr;
+  if (paidErr && paidErr.code !== "PGRST205") throw paidErr;
   if (renewalErr && renewalErr.code !== "PGRST205") throw renewalErr;
   if (rotationErr && rotationErr.code !== "PGRST205") throw rotationErr;
 
   const events: CalendarEvent[] = [];
 
-  for (const row of (dueRows ?? []) as unknown as Row[]) {
+  for (const row of (dueErr?.code === "PGRST205" ? [] : (dueRows ?? [])) as unknown as Row[]) {
     const status: CalendarEventStatus =
       row.fecha_vencimiento < todayISO ? "overdue" : "pending";
     events.push({
@@ -119,7 +120,7 @@ export async function listCalendarEvents(
     });
   }
 
-  for (const row of (paidRows ?? []) as unknown as Row[]) {
+  for (const row of (paidErr?.code === "PGRST205" ? [] : (paidRows ?? [])) as unknown as Row[]) {
     if (!row.fecha_cobro) continue;
     events.push({
       id: `${row.id}-paid`,
@@ -223,7 +224,8 @@ export async function listUpcoming(
     .order("fecha_vencimiento", { ascending: true })
     .limit(limit);
 
-  if (error) throw error;
+  if (error && error.code !== "PGRST205") throw error;
+  if (error?.code === "PGRST205") return [];
 
   return ((data ?? []) as unknown as Row[]).map((row) => {
     const status: CalendarEventStatus =

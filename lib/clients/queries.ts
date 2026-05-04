@@ -83,7 +83,22 @@ export async function getClientStats(clientId: string): Promise<ClientStats> {
     .eq("client_id", clientId)
     .neq("status", "cancelled");
 
-  if (error) throw error;
+  if (error && error.code !== "PGRST205") throw error;
+  // Sin tabla `invoices` (legado eliminado): métricas vacías para no romper la ficha.
+  if (error?.code === "PGRST205") {
+    return {
+      total_facturado: 0,
+      total_cobrado: 0,
+      pendiente: 0,
+      count_facturas: 0,
+      count_paid: 0,
+      ticket_medio: 0,
+      dias_promedio_cobro: null,
+      ultimo_cobro: null,
+      proximo_vencimiento: null,
+      puntualidad: "sin-datos" as const,
+    };
+  }
 
   const rows = (data ?? []) as unknown as StatsRow[];
 
@@ -174,7 +189,8 @@ export async function listClientInvoices(
     .order("fecha_emision", { ascending: false })
     .order("sequence_number", { ascending: false })
     .limit(limit);
-  if (error) throw error;
+  if (error && error.code !== "PGRST205") throw error;
+  if (error?.code === "PGRST205") return [];
   return (data ?? []) as unknown as ClientInvoiceListItem[];
 }
 
