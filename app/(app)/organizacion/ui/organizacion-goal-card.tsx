@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, TrendingUp, User } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -41,93 +41,62 @@ export function OrganizacionGoalCard({
   const deadlineLabel = formatGoalDeadlineLabel(tone, goal.target_date);
   const isMine = goal.owner_id === currentUserId;
 
-  const ringClass =
-    tone === "overdue"
-      ? "ring-2 ring-destructive/40"
-      : tone === "soon"
-        ? "ring-2 ring-amber-500/35"
-        : tone === "done"
-          ? "ring-2 ring-emerald-500/30"
-          : "";
-
   return (
-    <Card
-      className={cn(
-        "group relative overflow-hidden rounded-2xl border-border/70 bg-gradient-to-b from-card to-card/80 shadow-sm transition-shadow hover:shadow-md",
-        ringClass
-      )}
-    >
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 space-y-1">
-            <p className="line-clamp-2 text-base font-semibold leading-snug tracking-tight">
-              {goal.title}
-            </p>
-            {goal.description ? (
-              <p className="line-clamp-2 text-xs text-muted-foreground">{goal.description}</p>
-            ) : null}
-          </div>
-          <Badge
-            variant={goal.scope === "team" ? "default" : "secondary"}
-            className="shrink-0 text-[10px] uppercase tracking-wide"
-          >
+    <Card className="rounded-xl border-border/70 shadow-sm">
+      <CardHeader className="space-y-1 pb-2">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-base font-semibold leading-snug">{goal.title}</CardTitle>
+          <Badge variant={goal.scope === "team" ? "warning" : "secondary"}>
             {goal.scope === "team" ? "Equipo" : "Personal"}
           </Badge>
         </div>
-
-        <div className="mt-4 space-y-2">
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        {goal.description ? (
+          <p className="text-sm text-muted-foreground">{goal.description}</p>
+        ) : null}
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span className="tabular-nums">Actual {formatNum(goal.current_value)}</span>
             <span className="font-medium text-foreground tabular-nums">{progress.toFixed(0)}%</span>
             <span className="tabular-nums">Meta {formatNum(goal.target_value)}</span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
-              className={cn(
-                "h-full rounded-full transition-all duration-500",
-                tone === "done"
-                  ? "bg-emerald-500"
-                  : progress >= 60
-                    ? "bg-emerald-500/90"
-                    : "bg-amber-500"
-              )}
+              className="h-full rounded-full bg-brand transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Calendar className="h-3.5 w-3.5" />
-            <span
-              className={cn(
-                tone === "overdue" && "font-medium text-destructive",
-                tone === "soon" && "font-medium text-amber-700 dark:text-amber-500"
-              )}
-            >
-              {deadlineLabel}
-            </span>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span
+            className={cn(
+              tone === "overdue" && "font-medium text-destructive",
+              tone === "soon" && "font-medium text-amber-700 dark:text-amber-500"
+            )}
+          >
+            {deadlineLabel}
           </span>
-          <span className="inline-flex items-center gap-1">
-            <User className="h-3.5 w-3.5" />
-            {goal.owner?.full_name || goal.owner?.email || "Sin asignar"}
-          </span>
+          <span>·</span>
+          <span>{goal.owner?.full_name || goal.owner?.email || "Sin asignar"}</span>
           {isMine ? (
-            <Badge variant="outline" className="text-[10px]">
-              Tú
-            </Badge>
+            <>
+              <span>·</span>
+              <span className="text-foreground">Tú</span>
+            </>
           ) : null}
         </div>
 
-        <div className="mt-4 flex justify-end border-t border-border/60 pt-3 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100">
+        <div className="flex justify-end border-t border-border/60 pt-3">
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-                <TrendingUp className="h-3.5 w-3.5" />
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <TrendingUp className="h-4 w-4" />
                 Actualizar progreso
               </Button>
             </DialogTrigger>
-            <DialogContent className="rounded-2xl sm:max-w-md">
+            <DialogContent>
               <DialogHeader>
                 <DialogTitle>Registrar avance</DialogTitle>
                 <DialogDescription className="line-clamp-2">{goal.title}</DialogDescription>
@@ -152,15 +121,15 @@ export function OrganizacionGoalCard({
                     required
                     defaultValue={goal.current_value}
                   />
-                  <p className="text-[11px] text-muted-foreground">
-                    Meta: {formatNum(goal.target_value)} · puedes superarla si ya la cumpliste.
+                  <p className="text-xs text-muted-foreground">
+                    Meta: {formatNum(goal.target_value)}.
                   </p>
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
                     Cerrar
                   </Button>
-                  <Button type="submit" size="sm">
+                  <Button type="submit" size="sm" variant="brand">
                     Guardar
                   </Button>
                 </div>

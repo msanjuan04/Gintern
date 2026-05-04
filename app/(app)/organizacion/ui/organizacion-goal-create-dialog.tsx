@@ -43,16 +43,16 @@ export function OrganizacionGoalCreateDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="brand" className="gap-2 shadow-sm">
-          <Plus className="h-4 w-4" />
+        <Button variant="brand">
+          <Plus className="mr-2 h-4 w-4" />
           Nuevo objetivo
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg rounded-2xl border-border/80 sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle className="text-xl">Crear objetivo</DialogTitle>
+          <DialogTitle>Crear objetivo</DialogTitle>
           <DialogDescription>
-            Define una meta medible. El progreso se puede actualizar después desde la tarjeta.
+            Meta medible; el progreso se actualiza desde cada tarjeta.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -84,32 +84,17 @@ export function OrganizacionGoalCreateDialog({
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Alcance</Label>
-              <input type="hidden" name="scope" value={scope} />
-              <div className="flex rounded-xl border border-border/80 bg-muted/40 p-1">
-                <button
-                  type="button"
-                  onClick={() => setScope("team")}
-                  className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    scope === "team"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Equipo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScope("personal")}
-                  className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    scope === "personal"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Personal
-                </button>
-              </div>
+              <Label htmlFor="og-scope">Alcance</Label>
+              <select
+                id="og-scope"
+                name="scope"
+                value={scope}
+                onChange={(e) => setScope(e.target.value as "team" | "personal")}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="team">Equipo</option>
+                <option value="personal">Personal</option>
+              </select>
             </div>
             {scope === "team" ? (
               <div className="space-y-2">

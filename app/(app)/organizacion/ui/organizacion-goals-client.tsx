@@ -2,16 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  KanbanSquare,
-  Search,
-  Target,
-  Trophy,
-  UserRound,
-} from "lucide-react";
-
+import { Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -61,8 +52,8 @@ export function OrganizacionGoalsClient({ data }: { data: OrganizationDashboardD
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative max-w-md flex-1">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="relative min-w-0 flex-1 md:max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -71,79 +62,41 @@ export function OrganizacionGoalsClient({ data }: { data: OrganizationDashboardD
             className="pl-9"
           />
         </div>
-        <OrganizacionGoalCreateDialog
-          members={data.members}
-          currentUserId={data.me.id}
-        />
+        <OrganizacionGoalCreateDialog members={data.members} currentUserId={data.me.id} />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi
-          icon={Trophy}
-          label="Objetivos de equipo"
-          value={teamGoals.length}
-          hint="Visibles para todo el equipo activo"
-        />
-        <Kpi
-          icon={UserRound}
-          label="Personales"
-          value={personalGoals.length}
-          hint="Solo tú y admins"
-        />
-        <Kpi
-          icon={CheckCircle2}
-          label="Completados"
-          value={completed}
-          hint="Progreso ≥ 100%"
-          accent="success"
-        />
-        <Kpi
-          icon={AlertTriangle}
-          label="Requieren atención"
-          value={atRisk}
-          hint="Vencidos o fecha en 14 días"
-          accent={atRisk > 0 ? "warning" : "default"}
-        />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <MetricCard label="Objetivos de equipo" value={String(teamGoals.length)} />
+        <MetricCard label="Objetivos personales" value={String(personalGoals.length)} />
+        <MetricCard label="Completados" value={String(completed)} />
+        <MetricCard label="Requieren atención" value={String(atRisk)} />
       </div>
 
-      <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <KanbanSquare className="h-3.5 w-3.5" />
-        El trabajo accionable día a día está en{" "}
-        <Link href="/tickets" className="font-medium text-brand hover:underline">
-          Tickets
+      <p className="text-sm text-muted-foreground">
+        ¿Tareas y entregas?{" "}
+        <Link href="/tickets" className="text-brand hover:underline">
+          Ir a Tickets
         </Link>
         .
       </p>
 
-      <Tabs defaultValue="team" className="space-y-5">
-        <TabsList className="h-11 w-full max-w-md rounded-xl bg-muted/60 p-1">
-          <TabsTrigger value="team" className="flex-1 rounded-lg gap-2">
-            <Trophy className="h-3.5 w-3.5 opacity-70" />
-            Equipo
-            <span className="rounded-full bg-background/80 px-2 py-0.5 text-[10px] tabular-nums text-muted-foreground">
-              {filteredTeam.length}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="personal" className="flex-1 rounded-lg gap-2">
-            <UserRound className="h-3.5 w-3.5 opacity-70" />
-            Personal
-            <span className="rounded-full bg-background/80 px-2 py-0.5 text-[10px] tabular-nums text-muted-foreground">
-              {filteredPersonal.length}
-            </span>
-          </TabsTrigger>
+      <Tabs defaultValue="team" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="team">Equipo ({filteredTeam.length})</TabsTrigger>
+          <TabsTrigger value="personal">Personal ({filteredPersonal.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="team" className="mt-0">
           <GoalsSection
             goals={filteredTeam}
-            empty="No hay objetivos de equipo. Crea uno para alinear hitos trimestrales o métricas compartidas."
+            empty="No hay objetivos de equipo. Crea el primero con el botón de arriba."
             currentUserId={data.me.id}
           />
         </TabsContent>
         <TabsContent value="personal" className="mt-0">
           <GoalsSection
             goals={filteredPersonal}
-            empty="No hay objetivos personales. Úsalos para foco semanal o hábitos sin mezclarlos con el tablero de equipo."
+            empty="No hay objetivos personales."
             currentUserId={data.me.id}
           />
         </TabsContent>
@@ -163,11 +116,8 @@ function GoalsSection({
 }) {
   if (goals.length === 0) {
     return (
-      <Card className="rounded-2xl border-dashed border-border/80 bg-muted/20">
-        <CardContent className="flex flex-col items-center justify-center gap-2 py-14 text-center">
-          <Target className="h-10 w-10 text-muted-foreground/50" />
-          <p className="max-w-sm text-sm text-muted-foreground">{empty}</p>
-        </CardContent>
+      <Card>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">{empty}</CardContent>
       </Card>
     );
   }
@@ -181,37 +131,12 @@ function GoalsSection({
   );
 }
 
-function Kpi({
-  icon: Icon,
-  label,
-  value,
-  hint,
-  accent = "default",
-}: {
-  icon: typeof Target;
-  label: string;
-  value: number;
-  hint: string;
-  accent?: "default" | "success" | "warning";
-}) {
-  const valueClass =
-    accent === "success"
-      ? "text-emerald-600 dark:text-emerald-400"
-      : accent === "warning" && value > 0
-        ? "text-amber-600 dark:text-amber-400"
-        : "";
-
+function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <Card className="rounded-2xl border-border/70 bg-card/50 shadow-sm">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            {label}
-          </p>
-          <Icon className="h-4 w-4 shrink-0 text-muted-foreground/80" />
-        </div>
-        <p className={`mt-1.5 text-2xl font-semibold tabular-nums ${valueClass}`}>{value}</p>
-        <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{hint}</p>
+    <Card>
+      <CardContent className="pt-6">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="mt-2 text-3xl font-semibold tabular-nums">{value}</p>
       </CardContent>
     </Card>
   );
