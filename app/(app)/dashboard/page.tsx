@@ -55,7 +55,7 @@ export default async function DashboardPage({
       id: "deviations",
       label: "Proyectos en desvio",
       value: deviations,
-      href: "/rentabilidad",
+      href: "/organizacion",
       icon: AlertTriangle,
       tone: deviations > 0 ? "destructive" : "secondary",
       hint: "Margen en riesgo",
@@ -268,7 +268,7 @@ export default async function DashboardPage({
       <Card>
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground">
-            Panel central conectado a tickets, propuestas, facturas, calendario y rentabilidad.
+            Panel central conectado a tickets, propuestas, facturas, calendario y organización.
             Usa la vista personal para foco diario y la global para priorizar decisiones de equipo.
           </p>
         </CardContent>

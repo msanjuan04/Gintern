@@ -111,7 +111,7 @@ export async function getDashboardBlocks(scope: Scope): Promise<DashboardBlock[]
       key: "invoices",
       label: "Facturas pendientes",
       value: safeInvoices,
-      href: "/finanzas",
+      href: "/dashboard",
     },
     {
       key: "deadlines",
@@ -123,7 +123,7 @@ export async function getDashboardBlocks(scope: Scope): Promise<DashboardBlock[]
       key: "deviations",
       label: "Proyectos en desvío",
       value: safeDeviations,
-      href: "/rentabilidad",
+      href: "/organizacion",
     },
   ];
 }

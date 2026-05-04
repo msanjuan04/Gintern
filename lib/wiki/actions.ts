@@ -8,7 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 
 const pageSchema = z.object({
   title: z.string().min(3, "Título obligatorio."),
-  category: z.string().min(2, "Categoría obligatoria."),
+  area: z.string().min(2, "Área obligatoria."),
+  subcategory: z.string().optional(),
   content: z.string().min(10, "El contenido es demasiado corto."),
   isPublished: z.boolean().default(true),
 });
@@ -26,7 +27,8 @@ function slugify(input: string) {
 export async function createWikiPageAction(formData: FormData) {
   const parsed = pageSchema.safeParse({
     title: String(formData.get("title") ?? ""),
-    category: String(formData.get("category") ?? ""),
+    area: String(formData.get("area") ?? ""),
+    subcategory: String(formData.get("subcategory") ?? "") || undefined,
     content: String(formData.get("content") ?? ""),
     isPublished: formData.get("isPublished") === "on",
   });
@@ -41,12 +43,18 @@ export async function createWikiPageAction(formData: FormData) {
   const baseSlug = slugify(parsed.data.title);
   const slug = `${baseSlug}-${Date.now().toString().slice(-4)}`;
 
+  const normalizedArea = parsed.data.area.trim().toLowerCase();
+  const normalizedSubcategory = parsed.data.subcategory?.trim().toLowerCase() ?? "";
+  const category = normalizedSubcategory
+    ? `${normalizedArea}/${normalizedSubcategory}`
+    : normalizedArea;
+
   const { data, error } = await supabase
     .from("knowledge_pages")
     .insert({
       slug,
       title: parsed.data.title,
-      category: parsed.data.category,
+      category,
       content: parsed.data.content,
       is_published: parsed.data.isPublished,
       owner_id: user.id,
@@ -61,7 +69,7 @@ export async function createWikiPageAction(formData: FormData) {
     action: "page_created",
     entityType: "knowledge_page",
     entityId: data.id,
-    metadata: { title: parsed.data.title, category: parsed.data.category },
+    metadata: { title: parsed.data.title, category },
   });
 
   revalidatePath("/wiki");

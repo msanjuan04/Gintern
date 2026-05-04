@@ -40,9 +40,9 @@ export type TicketBoardItem = {
 export async function listTicketBoard(): Promise<TicketBoardItem[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("tickets")
+    .from("vw_ticket_overview")
     .select(
-      "id, code, title, description, status, priority, due_date, assignee_id, reporter_id, assignee:team_members!tickets_assignee_id_fkey(full_name), client:clients!tickets_client_id_fkey(nombre)"
+      "id, code, title, description, status, priority, due_date, assignee_id, reporter_id, assignee_name, client_name, spent_minutes, has_running_timer, activity_count"
     )
     .order("created_at", { ascending: false });
 
@@ -53,56 +53,11 @@ export async function listTicketBoard(): Promise<TicketBoardItem[]> {
   }
 
   const tickets = (data ?? []) as Array<
-    Omit<
-      TicketBoardItem,
-      "assignee_name" | "client_name" | "spent_minutes" | "attachments" | "cc_members"
-    > & {
-      assignee:
-        | { full_name: string | null }
-        | Array<{ full_name: string | null }>
-        | null;
-      client:
-        | { nombre: string | null }
-        | Array<{ nombre: string | null }>
-        | null;
-    }
+    Omit<TicketBoardItem, "attachments" | "cc_members" | "comments" | "dependencies">
   >;
 
   const ids = tickets.map((t) => t.id);
   if (ids.length === 0) return [];
-
-  const { data: tracking, error: trackingError } = await supabase
-    .from("time_tracking")
-    .select("ticket_id, minutes_spent, start_at, end_at")
-    .in("ticket_id", ids);
-  if (trackingError) {
-    if (trackingError.code === "PGRST205") return [];
-    throw trackingError;
-  }
-
-  const spentByTicket = new Map<string, number>();
-  const hasRunningTimer = new Set<string>();
-  for (const row of tracking ?? []) {
-    const base = spentByTicket.get(row.ticket_id) ?? 0;
-    if (!row.end_at) {
-      hasRunningTimer.add(row.ticket_id);
-      continue;
-    }
-    if (typeof row.minutes_spent === "number") {
-      spentByTicket.set(row.ticket_id, base + row.minutes_spent);
-      continue;
-    }
-    if (row.start_at && row.end_at) {
-      const delta = Math.max(
-        0,
-        Math.floor(
-          (new Date(row.end_at).getTime() - new Date(row.start_at).getTime()) /
-            60000
-        )
-      );
-      spentByTicket.set(row.ticket_id, base + delta);
-    }
-  }
 
   const { data: attachments, error: attachmentsError } = await supabase
     .from("ticket_attachments")
@@ -271,24 +226,12 @@ export async function listTicketBoard(): Promise<TicketBoardItem[]> {
 
   return tickets.map((t) => ({
     ...t,
-    assignee_name: pickSingle(t.assignee)?.full_name ?? null,
-    client_name: pickSingle(t.client)?.nombre ?? null,
-    spent_minutes: spentByTicket.get(t.id) ?? 0,
     attachments: attachmentsByTicket.get(t.id) ?? [],
     cc_members: watchersByTicket.get(t.id) ?? [],
-    has_running_timer: hasRunningTimer.has(t.id),
     comments: commentsByTicket.get(t.id) ?? [],
     dependencies: depsByTicket.get(t.id) ?? [],
-    activity_count:
-      (commentsByTicket.get(t.id)?.length ?? 0) +
-      (attachmentsByTicket.get(t.id)?.length ?? 0) +
-      (depsByTicket.get(t.id)?.length ?? 0),
+    activity_count: t.activity_count ?? 0,
   }));
-}
-
-function pickSingle<T>(value: T | T[] | null | undefined): T | null {
-  if (!value) return null;
-  return Array.isArray(value) ? value[0] ?? null : value;
 }
 
 export async function listTicketFormData() {

@@ -1,27 +1,23 @@
-import { Badge } from "@/components/ui/badge";
-import { getFinanceDashboardData } from "@/lib/finanzas/queries";
+import { getFinanceDataBundle, listClientsForFilter } from "@/lib/finanzas/_services/queries";
 
-import { FinanzasTabs } from "./finanzas-tabs";
+import { FinanzasClient } from "./ui/finanzas-client";
 
 export const metadata = {
   title: "Finanzas · GNERAI",
 };
 
 export default async function FinanzasPage() {
-  const data = await getFinanceDashboardData();
+  const [bundle, clients] = await Promise.all([getFinanceDataBundle(), listClientsForFilter()]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Finanzas</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Control financiero integral para operación y estrategia.
-          </p>
-        </div>
-        <Badge variant="outline">Núcleo financiero</Badge>
-      </div>
-      <FinanzasTabs data={data} />
-    </div>
+    <section className="space-y-8">
+      <header className="space-y-2">
+        <h1 className="text-3xl font-semibold tracking-tight">Nucleo Financiero</h1>
+        <p className="text-sm text-muted-foreground">
+          Gestion operativa premium: KPI, movimientos, reportes y carga de operaciones.
+        </p>
+      </header>
+      <FinanzasClient initialData={bundle} clients={clients} />
+    </section>
   );
 }

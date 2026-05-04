@@ -154,7 +154,7 @@ export async function listCalendarEvents(
       date: row.next_renewal,
       status: "pending",
       kind: "subscription",
-      href: "/finanzas",
+      href: "/calendario",
       title: row.name,
       subtitle: `Renovación · ${row.provider}`,
       invoice_id: null,

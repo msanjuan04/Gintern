@@ -48,7 +48,6 @@ export function landingPathForRole(role: Role | null): string {
 const COLABORADOR_BLOCKED_PREFIXES = [
   "/propuestas",
   "/finanzas",
-  "/rentabilidad",
   "/boveda",
   "/wiki",
   "/logs",

@@ -18,6 +18,16 @@ export type ProposalStatus =
   | "lost";
 export type BillingPeriod = "monthly" | "quarterly" | "annual";
 export type TransactionKind = "income" | "expense";
+export type TransactionCategory =
+  | "saas"
+  | "structural"
+  | "variable"
+  | "service"
+  | "uncategorized"
+  | "internal_movement";
+export type OrganizationScope = "team" | "personal";
+export type OrganizationTaskStatus = "todo" | "in_progress" | "done" | "blocked";
+export type OrganizationTaskPriority = "low" | "medium" | "high";
 
 export type UserRow = {
   id: string;
@@ -155,15 +165,18 @@ export type SubscriptionRow = {
 
 export type TransactionRow = {
   id: string;
-  kind: TransactionKind;
   concept: string;
-  amount: number;
-  occurred_on: string;
+  type: TransactionKind;
+  category: TransactionCategory;
+  amount_net: number;
+  tax_amount: number;
+  amount_total: number;
+  issued_at: string;
+  paid_at: string | null;
   client_id: string | null;
-  invoice_id: string | null;
-  subscription_id: string | null;
-  owner_id: string;
-  notes: string | null;
+  project_id: string | null;
+  invoice_file_path: string | null;
+  created_by: string;
   created_at: string;
   updated_at: string;
 };
@@ -220,4 +233,32 @@ export type ActivityLogRow = {
   entity_id: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
+};
+
+export type OrganizationTaskRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: OrganizationTaskStatus;
+  priority: OrganizationTaskPriority;
+  scope: OrganizationScope;
+  assignee_id: string | null;
+  created_by: string;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OrganizationGoalRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  scope: OrganizationScope;
+  owner_id: string | null;
+  target_value: number;
+  current_value: number;
+  target_date: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 };
