@@ -20,8 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={jakarta.variable}>
-      <body className="font-sans antialiased">{children}</body>
+    <html lang="es" className={jakarta.variable} suppressHydrationWarning>
+      <body className="font-sans antialiased" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }
