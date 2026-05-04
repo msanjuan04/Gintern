@@ -87,7 +87,7 @@ export async function createMovementAction(
 
   const total = calculateMovementTotal(input);
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -123,7 +123,7 @@ export async function toggleMovementCobradoAction(
   cobrado: boolean,
   fechaCobro?: string
 ) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -148,7 +148,7 @@ export async function toggleMovementCobradoAction(
 }
 
 export async function deleteMovementAction(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

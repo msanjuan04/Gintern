@@ -8,6 +8,15 @@ import { createClient } from "@/lib/supabase/server";
 
 import { clientSchema } from "./schema";
 
+const INTERACTION_TYPES = new Set([
+  "note",
+  "call",
+  "meeting",
+  "email",
+  "whatsapp",
+  "other",
+]);
+
 export type ClientFormState =
   | { status: "idle" }
   | { status: "saved" }
@@ -32,6 +41,8 @@ function parseFormData(formData: FormData) {
       ? String(formData.get("direccion"))
       : undefined,
     notas: formData.get("notas") ? String(formData.get("notas")) : undefined,
+    stage: String(formData.get("stage") ?? "lead"),
+    estimated_ltv: Number(formData.get("estimated_ltv") ?? 0),
     activo: formData.get("activo") === "on" || formData.get("activo") === "true",
   });
 }
@@ -63,7 +74,7 @@ export async function createClientAction(
     throw e;
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -100,7 +111,7 @@ export async function updateClientAction(
     throw e;
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.from("clients").update(input).eq("id", id);
 
   if (error) return { status: "error", message: error.message };
@@ -111,7 +122,7 @@ export async function updateClientAction(
 }
 
 export async function toggleClientActivoAction(id: string, activo: boolean) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("clients")
     .update({ activo })
@@ -119,4 +130,33 @@ export async function toggleClientActivoAction(id: string, activo: boolean) {
   if (error) throw new Error(error.message);
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${id}`);
+}
+
+export async function addClientInteractionAction(
+  clientId: string,
+  formData: FormData
+) {
+  const content = String(formData.get("content") ?? "").trim();
+  if (!content) throw new Error("La nota no puede estar vacía.");
+  const interactionType = String(formData.get("interactionType") ?? "note");
+  const safeType = INTERACTION_TYPES.has(interactionType)
+    ? interactionType
+    : "note";
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("No autenticado.");
+
+  const { error } = await supabase.from("client_interactions").insert({
+    client_id: clientId,
+    author_id: user.id,
+    interaction_type: safeType,
+    content,
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/clientes/${clientId}`);
 }

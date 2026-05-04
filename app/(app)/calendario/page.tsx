@@ -34,11 +34,16 @@ function clamp(value: number, min: number, max: number) {
 export default async function CalendarioPage({
   searchParams,
 }: {
-  searchParams: { y?: string; m?: string };
+  searchParams: Promise<{ y?: string; m?: string }>;
 }) {
+  const resolvedSearchParams = await searchParams;
   const now = new Date();
-  const year = Number(searchParams.y) || now.getFullYear();
-  const month = clamp(Number(searchParams.m) || now.getMonth() + 1, 1, 12);
+  const year = Number(resolvedSearchParams.y) || now.getFullYear();
+  const month = clamp(
+    Number(resolvedSearchParams.m) || now.getMonth() + 1,
+    1,
+    12
+  );
 
   const monthDate = new Date(year, month - 1, 1);
   const monthStart = startOfMonth(monthDate);
@@ -147,7 +152,7 @@ export default async function CalendarioPage({
         <CardHeader>
           <CardTitle>Detalle del mes</CardTitle>
           <CardDescription>
-            Lista por orden cronológico de los eventos del mes.
+            Lista unificada de facturas, renovaciones y rotaciones.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -173,17 +178,16 @@ export default async function CalendarioPage({
                       )}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <Link
-                        href={`/facturas/${ev.invoice_id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {ev.client_name ?? ev.invoice_number}
+                      <Link href={ev.href} className="font-medium hover:underline">
+                        {ev.title}
                       </Link>
-                      <div className="font-mono text-xs text-muted-foreground">
-                        {ev.invoice_number}
-                      </div>
+                      <div className="text-xs text-muted-foreground">{ev.subtitle ?? "—"}</div>
                     </div>
-                    <span className="tabular-nums">{fmtMoney(ev.total)}</span>
+                    {ev.total > 0 ? (
+                      <span className="tabular-nums">{fmtMoney(ev.total)}</span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                     <StatusBadge status={ev.status} />
                   </li>
                 ))}

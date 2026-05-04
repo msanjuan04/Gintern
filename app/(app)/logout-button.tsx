@@ -6,8 +6,9 @@ import { LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
-export function LogoutButton() {
+export function LogoutButton({ className }: { className?: string }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -23,13 +24,14 @@ export function LogoutButton() {
   return (
     <Button
       variant="ghost"
-      size="icon"
+      size="sm"
       onClick={handleLogout}
       disabled={isPending}
       title="Cerrar sesión"
+      className={cn("gap-2", className)}
     >
       <LogOut className="h-4 w-4" />
-      <span className="sr-only">Cerrar sesión</span>
+      <span>Cerrar sesión</span>
     </Button>
   );
 }

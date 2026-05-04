@@ -46,14 +46,15 @@ const QUARTERS = [1, 2, 3, 4] as const;
 export default async function BalancePage({
   searchParams,
 }: {
-  searchParams: { y?: string; q?: string };
+  searchParams: Promise<{ y?: string; q?: string }>;
 }) {
+  const resolvedSearchParams = await searchParams;
   const cur = currentQuarter();
-  const year = Number(searchParams.y) || cur.year;
+  const year = Number(resolvedSearchParams.y) || cur.year;
   const quarter =
-    QUARTERS.find((q) => q === Number(searchParams.q)) ?? cur.quarter;
+    QUARTERS.find((q) => q === Number(resolvedSearchParams.q)) ?? cur.quarter;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

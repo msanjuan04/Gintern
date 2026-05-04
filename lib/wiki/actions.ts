@@ -1,0 +1,69 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+
+import { createActivityLog } from "@/lib/activity-logs/server";
+import { createClient } from "@/lib/supabase/server";
+
+const pageSchema = z.object({
+  title: z.string().min(3, "Título obligatorio."),
+  category: z.string().min(2, "Categoría obligatoria."),
+  content: z.string().min(10, "El contenido es demasiado corto."),
+  isPublished: z.boolean().default(true),
+});
+
+function slugify(input: string) {
+  return input
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+export async function createWikiPageAction(formData: FormData) {
+  const parsed = pageSchema.safeParse({
+    title: String(formData.get("title") ?? ""),
+    category: String(formData.get("category") ?? ""),
+    content: String(formData.get("content") ?? ""),
+    isPublished: formData.get("isPublished") === "on",
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado.");
+
+  const baseSlug = slugify(parsed.data.title);
+  const slug = `${baseSlug}-${Date.now().toString().slice(-4)}`;
+
+  const { data, error } = await supabase
+    .from("knowledge_pages")
+    .insert({
+      slug,
+      title: parsed.data.title,
+      category: parsed.data.category,
+      content: parsed.data.content,
+      is_published: parsed.data.isPublished,
+      owner_id: user.id,
+      last_edited_by: user.id,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+
+  await createActivityLog({
+    module: "wiki",
+    action: "page_created",
+    entityType: "knowledge_page",
+    entityId: data.id,
+    metadata: { title: parsed.data.title, category: parsed.data.category },
+  });
+
+  revalidatePath("/wiki");
+  revalidatePath("/logs");
+}

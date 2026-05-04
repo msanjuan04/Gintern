@@ -27,7 +27,7 @@ export type MovementFilters = {
 export async function listMovements(
   filters: MovementFilters = {}
 ): Promise<MovementListItem[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
   let query = supabase
     .from("movements")
     .select(
@@ -78,7 +78,7 @@ export async function getDashboardKpis(
   year: number,
   quarter: number
 ): Promise<DashboardKpis> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { start, end } = quarterRange(year, quarter);
 
   const { data: rows, error } = await supabase
@@ -119,7 +119,7 @@ export async function getDashboardKpis(
 export async function getRecentMovements(
   limit = 10
 ): Promise<MovementListItem[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("movements")
     .select(

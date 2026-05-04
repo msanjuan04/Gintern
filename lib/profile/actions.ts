@@ -69,7 +69,7 @@ export async function updateProfileAction(
     throw e;
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -88,7 +88,7 @@ export async function updateProfileAction(
 }
 
 export async function sendTelegramTestAction(): Promise<TelegramTestResult> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

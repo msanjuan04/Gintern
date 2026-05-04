@@ -24,15 +24,33 @@ export const metadata = {
   title: "Clientes · GNERAI Finance",
 };
 
-type SearchParams = { archivados?: string };
+type ClientStageFilter =
+  | "all"
+  | "lead"
+  | "meeting"
+  | "proposal"
+  | "negotiation"
+  | "active"
+  | "inactive";
+type SearchParams = { archivados?: string; q?: string; stage?: ClientStageFilter };
 
 export default async function ClientesPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<SearchParams>;
 }) {
-  const includeInactive = searchParams.archivados === "1";
-  const clients = await listClients({ includeInactive });
+  const resolvedSearchParams = await searchParams;
+  const includeInactive = resolvedSearchParams.archivados === "1";
+  const stageFilter =
+    resolvedSearchParams.stage && STAGE_OPTIONS.some((s) => s.value === resolvedSearchParams.stage)
+      ? resolvedSearchParams.stage
+      : "all";
+  const searchQuery = (resolvedSearchParams.q ?? "").trim();
+  const clients = await listClients({
+    includeInactive,
+    stage: stageFilter,
+    query: searchQuery,
+  });
 
   return (
     <div className="space-y-8">
@@ -57,6 +75,34 @@ export default async function ClientesPage({
           </Button>
         </div>
       </div>
+
+      <Card>
+        <CardContent className="pt-6">
+          <form className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto]">
+            <input type="hidden" name="archivados" value={includeInactive ? "1" : "0"} />
+            <input
+              name="q"
+              defaultValue={searchQuery}
+              placeholder="Buscar por nombre, contacto, email o teléfono..."
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            />
+            <select
+              name="stage"
+              defaultValue={stageFilter}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {STAGE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <Button type="submit" variant="outline">
+              Filtrar
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {clients.length === 0 ? (
         <Card>
@@ -113,7 +159,14 @@ export default async function ClientesPage({
                     <TableCell className="font-mono text-xs">
                       {c.nif ?? "—"}
                     </TableCell>
-                    <TableCell>{c.contacto ?? "—"}</TableCell>
+                    <TableCell>
+                      <div className="space-y-0.5">
+                        <p>{c.contacto ?? "—"}</p>
+                        {c.telefono && (
+                          <p className="text-xs text-muted-foreground">{c.telefono}</p>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {c.email ?? "—"}
                     </TableCell>
@@ -134,3 +187,13 @@ export default async function ClientesPage({
     </div>
   );
 }
+
+const STAGE_OPTIONS: Array<{ value: ClientStageFilter; label: string }> = [
+  { value: "all", label: "Todas las etapas" },
+  { value: "lead", label: "Lead" },
+  { value: "meeting", label: "Reunión" },
+  { value: "proposal", label: "Propuesta" },
+  { value: "negotiation", label: "Negociación" },
+  { value: "active", label: "Cliente activo" },
+  { value: "inactive", label: "Inactivo" },
+];

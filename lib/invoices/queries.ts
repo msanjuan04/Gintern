@@ -26,7 +26,7 @@ export type InvoiceFilters = {
 export async function listInvoices(
   filters: InvoiceFilters = {}
 ): Promise<InvoiceListItem[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   let query = supabase
     .from("invoices")
@@ -67,7 +67,7 @@ export type InvoiceWithRelations = InvoiceRow & {
 export async function getInvoice(
   id: string
 ): Promise<InvoiceWithRelations | null> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("invoices")
@@ -101,7 +101,7 @@ export async function getInvoice(
 }
 
 export async function listAllPartners(): Promise<UserRow[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("users")
     .select("*")

@@ -112,16 +112,17 @@ function EventChip({ event }: { event: CalendarEvent }) {
 
   return (
     <Link
-      href={`/facturas/${event.invoice_id}`}
+      href={event.href}
       className={cn(
         "flex flex-col rounded-sm border px-2 py-1 text-[11px] leading-tight transition-colors",
         palette
       )}
     >
       <span className="truncate font-medium">
-        {event.client_name ?? event.invoice_number}
+        {event.title}
       </span>
-      <span className="tabular-nums">{fmtMoney(event.total)}</span>
+      <span className="truncate text-[10px] opacity-80">{event.subtitle ?? "—"}</span>
+      {event.total > 0 && <span className="tabular-nums">{fmtMoney(event.total)}</span>}
     </Link>
   );
 }

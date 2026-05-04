@@ -42,12 +42,13 @@ const STATUS_TABS: { key: InvoiceStatus | "all"; label: string }[] = [
 export default async function FacturasPage({
   searchParams,
 }: {
-  searchParams: { status?: string; scope?: string };
+  searchParams: Promise<{ status?: string; scope?: string }>;
 }) {
+  const resolvedSearchParams = await searchParams;
   const statusFilter =
-    STATUS_TABS.find((t) => t.key === searchParams.status)?.key ?? "all";
+    STATUS_TABS.find((t) => t.key === resolvedSearchParams.status)?.key ?? "all";
   const scope =
-    searchParams.scope === "personal" ? "personal" : undefined;
+    resolvedSearchParams.scope === "personal" ? "personal" : undefined;
 
   const invoices = await listInvoices({
     status: statusFilter !== "all" ? (statusFilter as InvoiceStatus) : undefined,

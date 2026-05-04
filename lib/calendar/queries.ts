@@ -9,8 +9,12 @@ export type CalendarEvent = {
   id: string;
   date: string; // YYYY-MM-DD (la fecha en la que se pinta)
   status: CalendarEventStatus;
-  invoice_id: string;
-  invoice_number: string;
+  kind: "invoice" | "subscription" | "credential";
+  href: string;
+  title: string;
+  subtitle: string | null;
+  invoice_id: string | null;
+  invoice_number: string | null;
   total: number;
   base_imponible: number;
   client_name: string | null;
@@ -45,12 +49,17 @@ export async function listCalendarEvents(
   endISO: string,
   todayISO: string
 ): Promise<CalendarEvent[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const select =
     "id, invoice_number, total, base_imponible, status, scope, fecha_vencimiento, fecha_cobro, client:clients(nombre)";
 
-  const [{ data: dueRows, error: dueErr }, { data: paidRows, error: paidErr }] =
+  const [
+    { data: dueRows, error: dueErr },
+    { data: paidRows, error: paidErr },
+    { data: renewalRows, error: renewalErr },
+    { data: rotationRows, error: rotationErr },
+  ] =
     await Promise.all([
       supabase
         .from("invoices")
@@ -64,10 +73,26 @@ export async function listCalendarEvents(
         .eq("status", "paid")
         .gte("fecha_cobro", startISO)
         .lte("fecha_cobro", endISO),
+      supabase
+        .from("subscriptions")
+        .select("id, name, provider, amount, next_renewal, is_active")
+        .eq("is_active", true)
+        .gte("next_renewal", startISO)
+        .lte("next_renewal", endISO),
+      supabase
+        .from("credentials")
+        .select(
+          "id, service, account_identifier, rotation_due_on, scope, client:clients(nombre)"
+        )
+        .not("rotation_due_on", "is", null)
+        .gte("rotation_due_on", startISO)
+        .lte("rotation_due_on", endISO),
     ]);
 
   if (dueErr) throw dueErr;
   if (paidErr) throw paidErr;
+  if (renewalErr && renewalErr.code !== "PGRST205") throw renewalErr;
+  if (rotationErr && rotationErr.code !== "PGRST205") throw rotationErr;
 
   const events: CalendarEvent[] = [];
 
@@ -78,6 +103,10 @@ export async function listCalendarEvents(
       id: `${row.id}-due`,
       date: row.fecha_vencimiento,
       status,
+      kind: "invoice",
+      href: `/facturas/${row.id}`,
+      title: row.client?.nombre ?? row.invoice_number,
+      subtitle: row.invoice_number,
       invoice_id: row.id,
       invoice_number: row.invoice_number,
       total: Number(row.total),
@@ -96,6 +125,10 @@ export async function listCalendarEvents(
       id: `${row.id}-paid`,
       date: row.fecha_cobro,
       status: "paid",
+      kind: "invoice",
+      href: `/facturas/${row.id}`,
+      title: row.client?.nombre ?? row.invoice_number,
+      subtitle: row.invoice_number,
       invoice_id: row.id,
       invoice_number: row.invoice_number,
       total: Number(row.total),
@@ -108,6 +141,66 @@ export async function listCalendarEvents(
     });
   }
 
+  for (const row of (renewalRows ?? []) as Array<{
+    id: string;
+    name: string;
+    provider: string;
+    amount: number;
+    next_renewal: string | null;
+  }>) {
+    if (!row.next_renewal) continue;
+    events.push({
+      id: `${row.id}-renewal`,
+      date: row.next_renewal,
+      status: "pending",
+      kind: "subscription",
+      href: "/finanzas",
+      title: row.name,
+      subtitle: `Renovación · ${row.provider}`,
+      invoice_id: null,
+      invoice_number: null,
+      total: Number(row.amount ?? 0),
+      base_imponible: Number(row.amount ?? 0),
+      client_name: null,
+      fecha_vencimiento: row.next_renewal,
+      fecha_cobro: null,
+      source_status: "sent",
+      scope: "gnerai",
+    });
+  }
+
+  for (const row of (rotationRows ?? []) as Array<{
+    id: string;
+    service: string;
+    account_identifier: string;
+    rotation_due_on: string;
+    scope: "internal" | "client";
+    client: { nombre: string | null } | Array<{ nombre: string | null }> | null;
+  }>) {
+    const client = Array.isArray(row.client) ? row.client[0] : row.client;
+    events.push({
+      id: `${row.id}-rotation`,
+      date: row.rotation_due_on,
+      status: row.rotation_due_on < todayISO ? "overdue" : "pending",
+      kind: "credential",
+      href: "/boveda",
+      title: row.service,
+      subtitle:
+        row.scope === "client"
+          ? `Rotación cliente · ${client?.nombre ?? row.account_identifier}`
+          : `Rotación interna · ${row.account_identifier}`,
+      invoice_id: null,
+      invoice_number: null,
+      total: 0,
+      base_imponible: 0,
+      client_name: client?.nombre ?? null,
+      fecha_vencimiento: row.rotation_due_on,
+      fecha_cobro: null,
+      source_status: "sent",
+      scope: "gnerai",
+    });
+  }
+
   return events;
 }
 
@@ -116,7 +209,7 @@ export async function listUpcoming(
   toISO: string,
   limit = 8
 ): Promise<CalendarEvent[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const select =
     "id, invoice_number, total, base_imponible, status, scope, fecha_vencimiento, fecha_cobro, client:clients(nombre)";
@@ -139,6 +232,10 @@ export async function listUpcoming(
       id: `${row.id}-due`,
       date: row.fecha_vencimiento,
       status,
+      kind: "invoice",
+      href: `/facturas/${row.id}`,
+      title: row.client?.nombre ?? row.invoice_number,
+      subtitle: row.invoice_number,
       invoice_id: row.id,
       invoice_number: row.invoice_number,
       total: Number(row.total),

@@ -9,6 +9,15 @@ export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "cancelled";
 export type MovementType = "income" | "expense";
 export type Scope = "gnerai" | "personal";
 export type UserRole = "socio" | "colaborador";
+export type ProposalStatus =
+  | "draft"
+  | "sent"
+  | "in_review"
+  | "negotiation"
+  | "won"
+  | "lost";
+export type BillingPeriod = "monthly" | "quarterly" | "annual";
+export type TransactionKind = "income" | "expense";
 
 export type UserRow = {
   id: string;
@@ -39,6 +48,15 @@ export type ClientRow = {
   telefono: string | null;
   notas: string | null;
   activo: boolean;
+  stage:
+    | "lead"
+    | "meeting"
+    | "proposal"
+    | "negotiation"
+    | "active"
+    | "inactive";
+  estimated_ltv: number;
+  owner_id: string | null;
   created_at: string;
   created_by: string | null;
 };
@@ -100,5 +118,106 @@ export type MovementRow = {
   cobrado: boolean;
   fecha_cobro: string | null;
   attachment_path: string | null;
+  created_at: string;
+};
+
+export type ProposalRow = {
+  id: string;
+  code: string | null;
+  client_id: string;
+  owner_id: string;
+  title: string;
+  status: ProposalStatus;
+  amount: number;
+  valid_until: string | null;
+  sent_at: string | null;
+  responded_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SubscriptionRow = {
+  id: string;
+  name: string;
+  provider: string;
+  amount: number;
+  currency: string;
+  billing_period: BillingPeriod;
+  starts_on: string;
+  next_renewal: string | null;
+  owner_id: string | null;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TransactionRow = {
+  id: string;
+  kind: TransactionKind;
+  concept: string;
+  amount: number;
+  occurred_on: string;
+  client_id: string | null;
+  invoice_id: string | null;
+  subscription_id: string | null;
+  owner_id: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CredentialRow = {
+  id: string;
+  service: string;
+  account_identifier: string;
+  scope: "internal" | "client";
+  client_id: string | null;
+  secret_hint: string | null;
+  vault_secret_ref: string | null;
+  environment: "prod" | "staging" | "dev" | "other";
+  owner_id: string;
+  rotation_due_on: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FileRow = {
+  id: string;
+  name: string;
+  tag: string | null;
+  external_url: string | null;
+  storage_path: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  version: number;
+  owner_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type KnowledgePageRow = {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  category: string;
+  is_published: boolean;
+  owner_id: string;
+  last_edited_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ActivityLogRow = {
+  id: string;
+  actor_id: string | null;
+  module: string;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  metadata: Record<string, unknown>;
   created_at: string;
 };

@@ -111,7 +111,7 @@ export async function createInvoiceAction(
   const direction = deriveDirection(input.kind);
   const year = parseISO(input.fecha_emision).getFullYear();
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -177,7 +177,7 @@ export async function createInvoiceAction(
 }
 
 export async function markInvoicePaidAction(id: string, fechaCobro: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: invoice, error } = await supabase
     .from("invoices")
     .update({ status: "paid", fecha_cobro: fechaCobro })
@@ -226,7 +226,7 @@ export async function setInvoiceStatusAction(
   id: string,
   status: "draft" | "sent" | "overdue" | "cancelled"
 ) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("invoices")
     .update({ status })
@@ -237,7 +237,7 @@ export async function setInvoiceStatusAction(
 }
 
 export async function deleteInvoiceAction(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.from("invoices").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/facturas");

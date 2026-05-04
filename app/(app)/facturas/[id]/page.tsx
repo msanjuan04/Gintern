@@ -29,9 +29,10 @@ export const metadata = {
 export default async function FacturaDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const invoice = await getInvoice(params.id);
+  const resolvedParams = await params;
+  const invoice = await getInvoice(resolvedParams.id);
   if (!invoice) notFound();
 
   return (

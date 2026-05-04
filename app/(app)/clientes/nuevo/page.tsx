@@ -18,7 +18,7 @@ export const metadata = {
 
 export default function NuevoClientePage() {
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
+    <div className="mx-auto w-full max-w-5xl space-y-8">
       <div>
         <Link
           href="/clientes"
@@ -27,7 +27,7 @@ export default function NuevoClientePage() {
           <ChevronLeft className="h-4 w-4" />
           Clientes
         </Link>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">
+        <h1 className="mt-3 text-center text-3xl font-semibold tracking-tight">
           Nuevo cliente
         </h1>
       </div>

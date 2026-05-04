@@ -12,7 +12,7 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -32,11 +32,15 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar role={role} />
+      <Sidebar
+        role={role}
+        userEmail={user.email ?? "Sin email"}
+        userInitials={initials || "•"}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between gap-4 border-b border-border/60 bg-card/40 px-4 lg:px-8">
+        <header className="flex h-16 items-center justify-between gap-4 border-b border-border/60 bg-card/40 px-4 lg:hidden lg:px-8">
           <MobileHeaderTitle />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 lg:hidden">
             <Link
               href="/perfil"
               className="flex items-center gap-3 rounded-full p-1 transition-colors hover:bg-secondary"

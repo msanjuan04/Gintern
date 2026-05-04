@@ -112,6 +112,37 @@ export function ClientForm({
           <FieldError state={state} field="telefono" />
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="stage">Etapa del pipeline</Label>
+          <select
+            id="stage"
+            name="stage"
+            defaultValue={client?.stage ?? "lead"}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="lead">Lead</option>
+            <option value="meeting">Reunión</option>
+            <option value="proposal">Propuesta</option>
+            <option value="negotiation">Negociación</option>
+            <option value="active">Cliente Activo</option>
+            <option value="inactive">Inactivo</option>
+          </select>
+          <FieldError state={state} field="stage" />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="estimated_ltv">LTV estimado (€)</Label>
+          <Input
+            id="estimated_ltv"
+            name="estimated_ltv"
+            type="number"
+            min={0}
+            step="0.01"
+            defaultValue={client?.estimated_ltv ?? 0}
+          />
+          <FieldError state={state} field="estimated_ltv" />
+        </div>
+
         <div className="space-y-2 md:col-span-2">
           <Label htmlFor="direccion">Dirección</Label>
           <Input

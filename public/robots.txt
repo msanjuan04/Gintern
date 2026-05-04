@@ -1,0 +1,16 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://clyra.software/sitemap.xml
+
+# Disallow admin or private routes (if any in the future)
+# Disallow: /admin/
+
+
+
+
+
+
+

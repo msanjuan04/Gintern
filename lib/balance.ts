@@ -35,7 +35,7 @@ export async function getBalanceActual(
   quarter?: number
 ): Promise<BalanceRow[]> {
   const cur = currentQuarter();
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("get_balance_actual", {
     p_year: year ?? cur.year,

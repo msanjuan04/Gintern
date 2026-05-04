@@ -36,6 +36,15 @@ export const clientSchema = z.object({
     .max(2000)
     .optional()
     .transform((v) => (v && v.trim() ? v.trim() : null)),
+  stage: z.enum([
+    "lead",
+    "meeting",
+    "proposal",
+    "negotiation",
+    "active",
+    "inactive",
+  ]),
+  estimated_ltv: z.coerce.number().min(0).default(0),
   activo: z.boolean().default(true),
 });
 

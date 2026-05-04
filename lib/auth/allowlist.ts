@@ -39,13 +39,20 @@ export function getAllowedEmails(): string[] {
   return Array.from(ALLOWED.keys());
 }
 
-// Ruta de aterrizaje según rol: socios al dashboard, colaboradores a facturas.
+// Ruta de aterrizaje según rol: ambos al panel de estado.
 export function landingPathForRole(role: Role | null): string {
-  return role === "colaborador" ? "/facturas" : "/dashboard";
+  return "/dashboard";
 }
 
 // Rutas que un colaborador NO puede ver.
-const COLABORADOR_BLOCKED_PREFIXES = ["/dashboard", "/movimientos", "/balance"];
+const COLABORADOR_BLOCKED_PREFIXES = [
+  "/propuestas",
+  "/finanzas",
+  "/rentabilidad",
+  "/boveda",
+  "/wiki",
+  "/logs",
+];
 
 export function isPathBlockedForRole(
   pathname: string,

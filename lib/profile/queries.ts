@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { UserRow } from "@/types/database";
 
 export async function getMyProfile(): Promise<UserRow | null> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

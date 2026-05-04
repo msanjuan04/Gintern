@@ -22,15 +22,16 @@ const VALID_KINDS: readonly InvoiceKind[] = [
 export default async function NuevaFacturaPage({
   searchParams,
 }: {
-  searchParams: {
+  searchParams: Promise<{
     kind?: string;
     cliente?: string;
     counterparty?: string;
     base?: string;
     concepto?: string;
-  };
+  }>;
 }) {
-  const supabase = createClient();
+  const resolvedSearchParams = await searchParams;
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -42,22 +43,24 @@ export default async function NuevaFacturaPage({
   ]);
 
   const kindParam = (VALID_KINDS as readonly string[]).includes(
-    searchParams.kind ?? ""
+    resolvedSearchParams.kind ?? ""
   )
-    ? (searchParams.kind as InvoiceKind)
+    ? (resolvedSearchParams.kind as InvoiceKind)
     : null;
 
-  const baseAmount = searchParams.base ? Number(searchParams.base) : null;
+  const baseAmount = resolvedSearchParams.base
+    ? Number(resolvedSearchParams.base)
+    : null;
 
   const defaults: InvoiceFormDefaults = {
     kind: kindParam ?? "client",
-    clientId: searchParams.cliente ?? null,
-    counterpartyId: searchParams.counterparty ?? null,
-    concepto: searchParams.concepto ?? "",
+    clientId: resolvedSearchParams.cliente ?? null,
+    counterpartyId: resolvedSearchParams.counterparty ?? null,
+    concepto: resolvedSearchParams.concepto ?? "",
     initialLine:
       baseAmount && Number.isFinite(baseAmount) && baseAmount > 0
         ? {
-            descripcion: searchParams.concepto ?? "",
+            descripcion: resolvedSearchParams.concepto ?? "",
             cantidad: "1",
             precio_unitario: baseAmount.toFixed(2),
           }
