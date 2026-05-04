@@ -67,6 +67,7 @@ begin
     ('Pepephone', 'expense', 'structural', 15, 0, 15, '2026-04-28', '2026-04-28', v_created_by),
     ('Wix Miracle', 'expense', 'saas', 45.98, 0, 45.98, '2026-04-28', '2026-04-28', v_created_by),
     ('Digital Ocean', 'expense', 'saas', 12.45, 0, 12.45, '2026-05-01', '2026-05-01', v_created_by),
+    ('Claude', 'expense', 'saas', 38.25, 0, 38.25, '2026-05-04', '2026-05-04', v_created_by),
 
     -- MOVIMIENTOS INTERNOS
     ('Wix Miracle Devolucion', 'income', 'internal_movement', 45.98, 0, 45.98, '2026-03-28', '2026-03-28', v_created_by),
