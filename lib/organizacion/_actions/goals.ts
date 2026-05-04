@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { createActivityLog } from "@/lib/activity-logs/server";
 import { createClient } from "@/lib/supabase/server";
 
 const createGoalSchema = z.object({
@@ -36,17 +37,29 @@ export async function createOrganizationGoalAction(formData: FormData) {
   const ownerId =
     parsed.data.scope === "personal" ? user.id : parsed.data.ownerId || user.id;
 
-  const { error } = await supabase.from("organization_goals").insert({
-    title: parsed.data.title,
-    description: parsed.data.description ?? null,
-    scope: parsed.data.scope,
-    owner_id: ownerId,
-    target_value: parsed.data.targetValue,
-    current_value: parsed.data.currentValue,
-    target_date: parsed.data.targetDate ?? null,
-    created_by: user.id,
-  });
+  const { data: created, error } = await supabase
+    .from("organization_goals")
+    .insert({
+      title: parsed.data.title,
+      description: parsed.data.description ?? null,
+      scope: parsed.data.scope,
+      owner_id: ownerId,
+      target_value: parsed.data.targetValue,
+      current_value: parsed.data.currentValue,
+      target_date: parsed.data.targetDate ?? null,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
   if (error) throw new Error(error.message);
+
+  await createActivityLog({
+    module: "organizacion",
+    action: "goal_created",
+    entityType: "organization_goal",
+    entityId: created.id as string,
+    metadata: { title: parsed.data.title, scope: parsed.data.scope },
+  });
 
   revalidatePath("/organizacion");
   revalidatePath("/organizacion/objetivos");

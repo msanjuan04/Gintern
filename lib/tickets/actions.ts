@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { createActivityLog } from "@/lib/activity-logs/server";
 import { createClient } from "@/lib/supabase/server";
 
 import { createTicketSchema, ticketStatusSchema } from "./schema";
@@ -50,6 +51,15 @@ export async function createTicketAction(formData: FormData) {
     .single();
 
   if (error) return { ok: false as const, message: error.message };
+
+  await createActivityLog({
+    module: "tickets",
+    action: "ticket_created",
+    entityType: "ticket",
+    entityId: data.id as string,
+    metadata: { title: parsed.data.title },
+  });
+
   revalidatePath("/tickets");
   revalidatePath("/dashboard");
   return { ok: true as const, ticketId: data.id as string };
@@ -58,6 +68,11 @@ export async function createTicketAction(formData: FormData) {
 export async function moveTicketStatusAction(ticketId: string, nextStatus: string) {
   const status = ticketStatusSchema.parse(nextStatus);
   const supabase = await createClient();
+  const { data: ticketRow } = await supabase
+    .from("tickets")
+    .select("title")
+    .eq("id", ticketId)
+    .maybeSingle();
   const patch =
     status === "done"
       ? { status, completed_at: new Date().toISOString() }
@@ -65,6 +80,15 @@ export async function moveTicketStatusAction(ticketId: string, nextStatus: strin
 
   const { error } = await supabase.from("tickets").update(patch).eq("id", ticketId);
   if (error) return { ok: false as const, message: error.message };
+
+  await createActivityLog({
+    module: "tickets",
+    action: "ticket_status_changed",
+    entityType: "ticket",
+    entityId: ticketId,
+    metadata: { title: ticketRow?.title ?? null, status },
+  });
+
   revalidatePath("/tickets");
   revalidatePath("/dashboard");
   return { ok: true as const };
@@ -141,6 +165,12 @@ export async function stopTicketTimerAction(ticketId: string) {
 export async function deleteTicketAction(ticketId: string) {
   const supabase = await createClient();
 
+  const { data: ticketMeta } = await supabase
+    .from("tickets")
+    .select("title")
+    .eq("id", ticketId)
+    .maybeSingle();
+
   const { data: attachments } = await supabase
     .from("ticket_attachments")
     .select("file_path")
@@ -156,6 +186,14 @@ export async function deleteTicketAction(ticketId: string) {
 
   const { error } = await supabase.from("tickets").delete().eq("id", ticketId);
   if (error) return { ok: false as const, message: error.message };
+
+  await createActivityLog({
+    module: "tickets",
+    action: "ticket_deleted",
+    entityType: "ticket",
+    entityId: ticketId,
+    metadata: { title: ticketMeta?.title ?? null },
+  });
 
   revalidatePath("/tickets");
   revalidatePath("/dashboard");

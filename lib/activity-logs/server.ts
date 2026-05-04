@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { createClient } from "@/lib/supabase/server";
 
 export async function createActivityLog(input: {
@@ -22,4 +24,7 @@ export async function createActivityLog(input: {
     entity_id: input.entityId ?? null,
     metadata: input.metadata ?? {},
   });
+
+  // Mantener la pantalla de auditoría al día sin repetir revalidate en cada acción.
+  revalidatePath("/logs");
 }

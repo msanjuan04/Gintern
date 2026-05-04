@@ -13,7 +13,7 @@ export type ActivityLogListItem = {
   metadata: Record<string, unknown>;
 };
 
-export async function listActivityLogs(limit = 80): Promise<ActivityLogListItem[]> {
+export async function listActivityLogs(limit = 200): Promise<ActivityLogListItem[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("activity_logs")

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { createActivityLog } from "@/lib/activity-logs/server";
 import { createClient } from "@/lib/supabase/server";
 
 const createTransactionSchema = z.object({
@@ -64,22 +65,40 @@ export async function createTransactionAction(formData: FormData) {
     invoiceFilePath = path;
   }
 
-  const { error } = await supabase.from("transactions").insert({
-    concept: parsed.data.concept,
-    type: parsed.data.type,
-    category: parsed.data.category,
-    amount_net: parsed.data.amountNet,
-    tax_amount: parsed.data.taxAmount,
-    amount_total: parsed.data.amountTotal,
-    issued_at: parsed.data.issuedAt,
-    paid_at: parsed.data.paidAt || null,
-    client_id: parsed.data.clientId || null,
-    project_id: parsed.data.projectId || null,
-    invoice_file_path: invoiceFilePath,
-    created_by: user.id,
-  });
+  const { data: inserted, error } = await supabase
+    .from("transactions")
+    .insert({
+      concept: parsed.data.concept,
+      type: parsed.data.type,
+      category: parsed.data.category,
+      amount_net: parsed.data.amountNet,
+      tax_amount: parsed.data.taxAmount,
+      amount_total: parsed.data.amountTotal,
+      issued_at: parsed.data.issuedAt,
+      paid_at: parsed.data.paidAt || null,
+      client_id: parsed.data.clientId || null,
+      project_id: parsed.data.projectId || null,
+      invoice_file_path: invoiceFilePath,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
 
   if (error) throw new Error(error.message);
+
+  await createActivityLog({
+    module: "finanzas",
+    action: "transaction_created",
+    entityType: "transaction",
+    entityId: inserted.id as string,
+    metadata: {
+      concept: parsed.data.concept,
+      type: parsed.data.type,
+      category: parsed.data.category,
+      amount_net: parsed.data.amountNet,
+    },
+  });
+
   revalidatePath("/finanzas");
 }
 
