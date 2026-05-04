@@ -1,10 +1,9 @@
 import { getOrganizationDashboardData } from "@/lib/organizacion/_services/queries";
 
 import { OrganizacionGoalsClient } from "../ui/organizacion-goals-client";
-import { OrganizacionNav } from "../ui/organizacion-nav";
 
 export const metadata = {
-  title: "Objetivos · GNERAI",
+  title: "Organización · GNERAI",
 };
 
 export default async function OrganizacionObjetivosPage() {
@@ -13,14 +12,12 @@ export default async function OrganizacionObjetivosPage() {
   return (
     <section className="space-y-8">
       <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Objetivos</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Organización</h1>
         <p className="text-sm text-muted-foreground">
-          Vista visual de objetivos de equipo y personales.
+          Objetivos de equipo y personales. Las tareas operativas viven en Tickets.
         </p>
       </header>
-      <OrganizacionNav />
       <OrganizacionGoalsClient data={data} />
     </section>
   );
 }
-

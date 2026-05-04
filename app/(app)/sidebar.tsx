@@ -25,7 +25,7 @@ const NAV = [
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/propuestas", label: "Propuestas", icon: FileText },
   { href: "/finanzas", label: "Finanzas", icon: BriefcaseBusiness },
-  { href: "/organizacion", label: "Organizacion", icon: ClipboardCheck },
+  { href: "/organizacion/objetivos", label: "Organizacion", icon: ClipboardCheck },
   { href: "/boveda", label: "Contraseñas", icon: FolderLock },
   { href: "/wiki", label: "Wiki", icon: BookOpen },
   { href: "/calendario", label: "Calendario", icon: Calendar },
@@ -37,7 +37,7 @@ const COLABORADOR_ALLOWED = new Set([
   "/tickets",
   "/clientes",
   "/calendario",
-  "/organizacion",
+  "/organizacion/objetivos",
 ]);
 
 function navForRole(role: Role) {

@@ -77,16 +77,10 @@ export function describeActivityLog(log: ActivityLogListItem): {
       break;
     }
     case "organizacion": {
-      href = "/organizacion";
+      href = "/organizacion/objetivos";
       const t = str(meta, "title");
-      if (log.action === "task_created") {
-        headline = t ? `Tarea: ${t}` : "Nueva tarea";
-      } else if (log.action === "task_status_changed") {
-        headline = t ? `Tarea actualizada: ${t}` : "Estado de tarea cambiado";
-        subline = str(meta, "status") ? `Estado: ${String(meta.status)}` : null;
-      } else if (log.action === "goal_created") {
+      if (log.action === "goal_created") {
         headline = t ? `Objetivo: ${t}` : "Nuevo objetivo";
-        href = "/organizacion/objetivos";
       }
       break;
     }

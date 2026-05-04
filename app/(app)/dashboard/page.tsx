@@ -55,7 +55,7 @@ export default async function DashboardPage({
       id: "deviations",
       label: "Proyectos en desvio",
       value: deviations,
-      href: "/organizacion",
+      href: "/organizacion/objetivos",
       icon: AlertTriangle,
       tone: deviations > 0 ? "destructive" : "secondary",
       hint: "Margen en riesgo",

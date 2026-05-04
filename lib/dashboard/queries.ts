@@ -123,7 +123,7 @@ export async function getDashboardBlocks(scope: Scope): Promise<DashboardBlock[]
       key: "deviations",
       label: "Proyectos en desvío",
       value: safeDeviations,
-      href: "/organizacion",
+      href: "/organizacion/objetivos",
     },
   ];
 }

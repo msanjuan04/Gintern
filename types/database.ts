@@ -26,8 +26,6 @@ export type TransactionCategory =
   | "uncategorized"
   | "internal_movement";
 export type OrganizationScope = "team" | "personal";
-export type OrganizationTaskStatus = "todo" | "in_progress" | "done" | "blocked";
-export type OrganizationTaskPriority = "low" | "medium" | "high";
 
 export type UserRow = {
   id: string;
@@ -233,20 +231,6 @@ export type ActivityLogRow = {
   entity_id: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
-};
-
-export type OrganizationTaskRow = {
-  id: string;
-  title: string;
-  description: string | null;
-  status: OrganizationTaskStatus;
-  priority: OrganizationTaskPriority;
-  scope: OrganizationScope;
-  assignee_id: string | null;
-  created_by: string;
-  due_date: string | null;
-  created_at: string;
-  updated_at: string;
 };
 
 export type OrganizationGoalRow = {

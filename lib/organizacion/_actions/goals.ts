@@ -61,7 +61,6 @@ export async function createOrganizationGoalAction(formData: FormData) {
     metadata: { title: parsed.data.title, scope: parsed.data.scope },
   });
 
-  revalidatePath("/organizacion");
   revalidatePath("/organizacion/objetivos");
 }
 
