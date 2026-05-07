@@ -88,8 +88,59 @@ export function FinanzasClient({
   initialData: FinanceDataBundle;
   clients: Array<{ id: string; nombre: string | null }>;
 }) {
+  const [activeTab, setActiveTab] = useState("resumen");
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [monthExpanded, setMonthExpanded] = useState(false);
   const [incomeFilter, setIncomeFilter] = useState({ from: "", to: "", clientId: "" });
   const [expenseFilter, setExpenseFilter] = useState({ from: "", to: "", clientId: "" });
+
+  const monthlyData = useMemo(() => {
+    const map = new Map<
+      string,
+      { monthKey: string; month: string; income: number; expense: number }
+    >();
+    const operational = [...initialData.incomes, ...initialData.expenses].filter(
+      (r) => r.category !== "internal_movement"
+    );
+    for (const row of operational) {
+      const key = row.issued_at.slice(0, 7);
+      if (!map.has(key)) {
+        const [y, m] = key.split("-");
+        const d = new Date(Number(y), Number(m) - 1, 1);
+        const label = d.toLocaleDateString("es-ES", {
+          month: "short",
+          year: "2-digit",
+        });
+        map.set(key, { monthKey: key, month: label, income: 0, expense: 0 });
+      }
+      const entry = map.get(key)!;
+      if (row.type === "income") entry.income += row.amount_net;
+      if (row.type === "expense") entry.expense += row.amount_net;
+    }
+    return Array.from(map.values())
+      .sort((a, b) => a.monthKey.localeCompare(b.monthKey))
+      .map((entry) => ({
+        ...entry,
+        income: Number(entry.income.toFixed(2)),
+        expense: Number(entry.expense.toFixed(2)),
+      }));
+  }, [initialData.incomes, initialData.expenses]);
+
+  const monthRows = useMemo(() => {
+    if (!selectedMonth) return null;
+    return [...initialData.incomes, ...initialData.expenses]
+      .filter((row) => row.issued_at.startsWith(selectedMonth))
+      .sort((a, b) => b.issued_at.localeCompare(a.issued_at));
+  }, [selectedMonth, initialData.incomes, initialData.expenses]);
+
+  const selectedMonthLabel = useMemo(() => {
+    if (!selectedMonth) return null;
+    const [y, m] = selectedMonth.split("-");
+    return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("es-ES", {
+      month: "long",
+      year: "numeric",
+    });
+  }, [selectedMonth]);
 
   const filteredIncomes = useMemo(
     () => filterRows(initialData.incomes, incomeFilter),
@@ -118,7 +169,7 @@ export function FinanzasClient({
         <TransactionModal clients={clients} />
       </div>
 
-      <Tabs defaultValue="resumen">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="h-11 rounded-xl bg-muted/70 p-1">
           <TabsTrigger value="resumen" className="rounded-lg">Resumen</TabsTrigger>
           <TabsTrigger value="ingresos" className="rounded-lg">Ingresos</TabsTrigger>
@@ -138,21 +189,125 @@ export function FinanzasClient({
           <Card className="rounded-2xl">
             <CardHeader>
               <CardTitle>Ingresos vs Gastos por mes</CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Haz click en un mes para ver sus movimientos abajo.
+              </p>
             </CardHeader>
             <CardContent className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={initialData.monthlySeries}>
+                <BarChart
+                  data={monthlyData}
+                  onClick={(state: { activePayload?: Array<{ payload: { monthKey: string } }> }) => {
+                    const payload = state?.activePayload?.[0]?.payload;
+                    if (!payload) return;
+                    setSelectedMonth(payload.monthKey);
+                    setMonthExpanded(false);
+                  }}
+                  style={{ cursor: "pointer" }}
+                >
                   <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip formatter={(v: number) => fmtMoney(v)} />
-                  <Bar dataKey="income" fill="#10b981" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="expense" fill="#ef4444" radius={[8, 8, 0, 0]} />
+                  <Bar
+                    dataKey="income"
+                    radius={[8, 8, 0, 0]}
+                  >
+                    {monthlyData.map((entry) => (
+                      <Cell
+                        key={`income-${entry.monthKey}`}
+                        fill={
+                          selectedMonth === entry.monthKey
+                            ? "#059669"
+                            : "#10b981"
+                        }
+                        opacity={
+                          selectedMonth && selectedMonth !== entry.monthKey
+                            ? 0.4
+                            : 1
+                        }
+                      />
+                    ))}
+                  </Bar>
+                  <Bar
+                    dataKey="expense"
+                    radius={[8, 8, 0, 0]}
+                  >
+                    {monthlyData.map((entry) => (
+                      <Cell
+                        key={`expense-${entry.monthKey}`}
+                        fill={
+                          selectedMonth === entry.monthKey
+                            ? "#dc2626"
+                            : "#ef4444"
+                        }
+                        opacity={
+                          selectedMonth && selectedMonth !== entry.monthKey
+                            ? 0.4
+                            : 1
+                        }
+                      />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          <FinanceTable rows={initialData.latest} title="Ultimos Movimientos" clients={clients} />
+          <FinanceTable
+            rows={monthRows ?? initialData.latest}
+            title={
+              selectedMonth && selectedMonthLabel
+                ? `Movimientos de ${selectedMonthLabel}`
+                : "Últimos movimientos"
+            }
+            clients={clients}
+            maxRows={
+              selectedMonth
+                ? monthExpanded
+                  ? undefined
+                  : 5
+                : 5
+            }
+            badge={
+              selectedMonth && monthRows
+                ? `${monthRows.length} movimiento${monthRows.length === 1 ? "" : "s"}`
+                : undefined
+            }
+            onClear={
+              selectedMonth
+                ? () => {
+                    setSelectedMonth(null);
+                    setMonthExpanded(false);
+                  }
+                : undefined
+            }
+            seeMore={(() => {
+              if (selectedMonth && monthRows && monthRows.length > 5) {
+                return monthExpanded
+                  ? {
+                      label: "Ver menos",
+                      onClick: () => setMonthExpanded(false),
+                    }
+                  : {
+                      label: `Ver el mes completo (${monthRows.length})`,
+                      onClick: () => setMonthExpanded(true),
+                    };
+              }
+              if (!selectedMonth) {
+                return [
+                  {
+                    label: "Ver ingresos",
+                    onClick: () => setActiveTab("ingresos"),
+                  },
+                  {
+                    label: "Ver gastos",
+                    onClick: () => setActiveTab("gastos"),
+                  },
+                ];
+              }
+              return undefined;
+            })()}
+          />
         </TabsContent>
 
         <TabsContent value="ingresos" className="space-y-4">
@@ -418,23 +573,75 @@ function FinanceTable({
   title,
   progressive = false,
   clients,
+  maxRows,
+  seeMore,
+  badge,
+  onClear,
 }: {
   rows: TransactionRow[];
   title: string;
   progressive?: boolean;
   clients: Array<{ id: string; nombre: string | null }>;
+  maxRows?: number;
+  seeMore?:
+    | { label: string; onClick: () => void }
+    | Array<{ label: string; onClick: () => void }>;
+  badge?: string;
+  onClear?: () => void;
 }) {
+  const seeMoreActions = seeMore
+    ? Array.isArray(seeMore)
+      ? seeMore
+      : [seeMore]
+    : [];
   const PAGE_SIZE = 15;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const visibleRows = progressive ? rows.slice(0, visibleCount) : rows;
+  const cappedRows = maxRows !== undefined ? rows.slice(0, maxRows) : rows;
+  const visibleRows = progressive ? rows.slice(0, visibleCount) : cappedRows;
   const hasMore = progressive && visibleRows.length < rows.length;
 
   return (
     <Card className="rounded-2xl">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <CardTitle className="truncate capitalize">{title}</CardTitle>
+          {badge && (
+            <Badge variant="outline" className="font-normal">
+              {badge}
+            </Badge>
+          )}
+          {onClear && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="inline-flex h-6 items-center gap-1 rounded-full border border-border/80 bg-card px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
+              title="Quitar filtro de mes"
+            >
+              <span aria-hidden="true">×</span> Quitar filtro
+            </button>
+          )}
+        </div>
+        {seeMoreActions.length > 0 && (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {seeMoreActions.map((action) => (
+              <button
+                key={action.label}
+                type="button"
+                onClick={action.onClick}
+                className="rounded-md border border-border/70 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+              >
+                {action.label} →
+              </button>
+            ))}
+          </div>
+        )}
       </CardHeader>
       <CardContent>
+        {visibleRows.length === 0 ? (
+          <div className="rounded-md border border-dashed border-border/70 px-4 py-8 text-center text-sm text-muted-foreground">
+            No hay movimientos para mostrar.
+          </div>
+        ) : (
         <Table>
           <TableHeader>
             <TableRow>
@@ -467,6 +674,7 @@ function FinanceTable({
             ))}
           </TableBody>
         </Table>
+        )}
         {progressive && rows.length > PAGE_SIZE ? (
           <div className="mt-4 flex justify-center gap-2">
             {hasMore ? (

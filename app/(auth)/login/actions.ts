@@ -50,13 +50,41 @@ export async function signInWithPassword(
     };
   }
 
-  // Sincroniza el rol desde el env var hacia public.users.
   const role = getEmailRole(email);
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user && role) {
-    await supabase.from("users").update({ role }).eq("id", user.id);
+  if (user) {
+    if (role) {
+      await supabase.from("users").update({ role }).eq("id", user.id);
+    }
+
+    // Asegura que el usuario está en team_members (lo usan las RLS de
+    // finanzas, bóveda, wiki, ficheros, logs, calendar y organización).
+    // Si no existe, lo creamos como admin activo; si ya existe, no tocamos
+    // su rol/estado para no pisar configuración manual.
+    const profileFromUsers = await supabase
+      .from("users")
+      .select("nombre, apellidos")
+      .eq("id", user.id)
+      .maybeSingle();
+    const fullName = [
+      profileFromUsers.data?.nombre,
+      profileFromUsers.data?.apellidos,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    await supabase.from("team_members").upsert(
+      {
+        id: user.id,
+        email,
+        full_name: fullName || email,
+        role: "admin",
+        is_active: true,
+      },
+      { onConflict: "id", ignoreDuplicates: true }
+    );
   }
 
   revalidatePath("/", "layout");
