@@ -10,108 +10,96 @@ export default function LoginPage() {
   const year = new Date().getFullYear();
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
-      {/* Panel izquierdo · marca */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden border-r border-border/60 bg-card px-12 py-12 lg:flex xl:px-16">
-        {/* Decoración: dot grid + glows muy sutiles */}
+    <div className="grid min-h-screen lg:grid-cols-[1.12fr_0.88fr]">
+      <aside className="relative hidden overflow-hidden border-r border-border/60 bg-card lg:flex">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.05] [color:hsl(var(--foreground))]"
+          className="pointer-events-none absolute inset-0 opacity-[0.04] [color:hsl(var(--foreground))]"
           style={{
             backgroundImage:
               "radial-gradient(currentColor 1px, transparent 1px)",
-            backgroundSize: "22px 22px",
+            backgroundSize: "24px 24px",
           }}
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-brand/10 blur-3xl"
+          className="pointer-events-none absolute -left-36 top-0 h-[26rem] w-[26rem] rounded-full bg-brand/10 blur-3xl"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute -bottom-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-foreground/[0.04] blur-3xl"
+          className="pointer-events-none absolute -bottom-44 -right-36 h-[30rem] w-[30rem] rounded-full bg-foreground/[0.04] blur-3xl"
         />
 
-        {/* Top: logo */}
-        <div className="relative">
-          <GneraiLogo priority heightClass="h-16" />
-        </div>
+        <div className="relative flex w-full flex-col justify-between px-14 py-12 xl:px-20">
+          <div>
+            <span className="rounded-full border border-border/70 bg-background/60 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              GNERAI · PRIVATE ACCESS
+            </span>
+          </div>
 
-        {/* Middle: claim */}
-        <div className="relative max-w-md space-y-7">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-            Sistema operativo interno
-          </p>
-          <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight xl:text-[2.75rem]">
-            Todo el equipo,
-            <br />
-            <span className="text-foreground/70">una sola plataforma.</span>
-          </h1>
-          <p className="text-base leading-relaxed text-muted-foreground">
-            Operaciones, finanzas y conocimiento del estudio centralizados con la
-            elegancia que merece tu trabajo diario.
-          </p>
-          <ul className="space-y-3 pt-2 text-sm">
-            <li className="flex items-center gap-3">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand" />
-              <span className="text-foreground/80">
-                Tickets, clientes y propuestas
+          <div className="max-w-xl space-y-5">
+            <div className="-mt-5 xl:-mt-6">
+              <GneraiLogo priority heightClass="h-48 xl:h-56" />
+            </div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground/90">
+              Internal Operating System
+            </p>
+            <h1 className="text-[2.35rem] font-semibold leading-[1.05] tracking-tight text-foreground/95 xl:text-[2.7rem]">
+              Elegancia operativa
+              <br />
+              <span className="whitespace-nowrap">para equipos de alto nivel.</span>
+            </h1>
+            <div className="flex items-center gap-3 pt-1 text-xs text-foreground/75">
+              <span className="rounded-full border border-border/60 bg-background/50 px-3 py-1.5">
+                Strategy
               </span>
-            </li>
-            <li className="flex items-center gap-3">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand" />
-              <span className="text-foreground/80">
-                Finanzas, calendario y bóveda de credenciales
+              <span className="rounded-full border border-border/60 bg-background/50 px-3 py-1.5">
+                Finance
               </span>
-            </li>
-            <li className="flex items-center gap-3">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand" />
-              <span className="text-foreground/80">
-                Drive, wiki y registro completo de actividad
+              <span className="rounded-full border border-border/60 bg-background/50 px-3 py-1.5">
+                Execution
               </span>
-            </li>
-          </ul>
-        </div>
+            </div>
+          </div>
 
-        {/* Bottom: footer */}
-        <div className="relative flex items-center justify-between text-xs text-muted-foreground">
-          <span>© {year} GNERAI</span>
-          <span className="rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em]">
-            OS · v1
-          </span>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>© {year} GNERAI</span>
+            <span className="rounded-full border border-border/70 bg-background/60 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.18em]">
+              Confidential
+            </span>
+          </div>
         </div>
       </aside>
 
-      {/* Panel derecho · formulario */}
-      <main className="flex min-h-screen flex-col">
-        {/* Header móvil con logo */}
+      <main className="relative flex min-h-screen flex-col bg-background">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-card to-transparent"
+        />
         <header className="flex items-center justify-between border-b border-border/60 bg-card px-6 py-5 lg:hidden">
-          <GneraiLogo priority heightClass="h-10" />
+          <GneraiLogo priority heightClass="h-16" />
           <span className="rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            OS · v1
+            Private Access
           </span>
         </header>
 
-        <div className="flex flex-1 items-center justify-center px-6 py-12 sm:px-10">
-          <div className="w-full max-w-sm space-y-8">
-            <div className="space-y-2 text-center sm:text-left">
-              <h2 className="text-2xl font-semibold tracking-tight">
-                Bienvenido de nuevo
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Accede con tu correo del equipo para continuar.
+        <div className="relative flex flex-1 items-center justify-center px-6 py-12 sm:px-10">
+          <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card/95 p-8 shadow-card backdrop-blur sm:p-10">
+            <div className="mb-8 space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                Acceso seguro
               </p>
+              <h2 className="text-2xl font-semibold tracking-tight">Bienvenido</h2>
             </div>
 
             <LoginForm />
 
-            <p className="text-center text-xs text-muted-foreground sm:text-left">
-              ¿Problemas para entrar? Contacta con un socio para revisar tu acceso.
+            <p className="mt-6 text-[11px] text-muted-foreground">
+              Acceso restringido al equipo GNERAI.
             </p>
           </div>
         </div>
 
-        {/* Footer móvil */}
         <footer className="border-t border-border/60 px-6 py-4 text-center text-[11px] text-muted-foreground lg:hidden">
           © {year} GNERAI · Acceso restringido
         </footer>

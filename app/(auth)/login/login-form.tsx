@@ -18,10 +18,10 @@ function SubmitButton() {
   return (
     <Button
       type="submit"
-      variant="default"
+      variant="brand"
       size="lg"
       disabled={pending}
-      className="group h-12 w-full justify-center rounded-md text-sm font-medium tracking-tight"
+      className="group h-12 w-full justify-center rounded-md text-sm font-semibold tracking-tight shadow-sm"
     >
       {pending ? (
         <>
@@ -45,11 +45,11 @@ export function LoginForm() {
   const isError = state.status === "error";
 
   return (
-    <form action={formAction} className="space-y-5" noValidate>
-      <div className="space-y-2">
+    <form action={formAction} className="space-y-6" noValidate>
+      <div className="space-y-2.5">
         <Label
           htmlFor="email"
-          className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground"
+          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
         >
           Email
         </Label>
@@ -63,17 +63,17 @@ export function LoginForm() {
             required
             placeholder="tu@gnerai.com"
             className={cn(
-              "h-12 pl-10 text-[15px]",
+              "h-12 rounded-md border-border/60 bg-background/60 pl-10 text-[15px]",
               isError && "border-destructive/60 focus-visible:ring-destructive/40"
             )}
           />
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label
           htmlFor="password"
-          className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground"
+          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
         >
           Contraseña
         </Label>
@@ -86,7 +86,7 @@ export function LoginForm() {
             required
             placeholder="••••••••"
             className={cn(
-              "h-12 pr-12 text-[15px]",
+              "h-12 rounded-md border-border/60 bg-background/60 pr-12 text-[15px]",
               isError && "border-destructive/60 focus-visible:ring-destructive/40"
             )}
           />

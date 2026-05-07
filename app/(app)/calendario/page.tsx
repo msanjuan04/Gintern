@@ -74,7 +74,7 @@ export default async function CalendarioPage({
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Calendario</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Centro de fechas clave: vencimientos, renovaciones y rotaciones.
+            Centro de fechas clave: vencimientos, tickets, objetivos y renovaciones.
           </p>
         </div>
         <Button asChild variant="outline" size="sm">

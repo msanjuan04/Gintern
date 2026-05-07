@@ -5,13 +5,20 @@ import { createClient } from "@/lib/supabase/server";
 export type CalendarEventStatus = "paid" | "pending" | "overdue";
 
 export type CalendarEventKind = "subscription" | "credential" | "manual";
+export type CalendarEventKindExtended =
+  | "subscription"
+  | "credential"
+  | "manual"
+  | "ticket"
+  | "goal"
+  | "proposal";
 
 export type CalendarEvent = {
   id: string;
   source_id: string | null;
   date: string;
   status: CalendarEventStatus;
-  kind: CalendarEventKind;
+  kind: CalendarEventKindExtended;
   href: string;
   title: string;
   subtitle: string | null;
@@ -35,6 +42,9 @@ export async function listCalendarEvents(
     { data: renewalRows, error: renewalErr },
     { data: rotationRows, error: rotationErr },
     { data: manualRows, error: manualErr },
+    { data: ticketRows, error: ticketErr },
+    { data: goalRows, error: goalErr },
+    { data: proposalRows, error: proposalErr },
   ] = await Promise.all([
     supabase
       .from("subscriptions")
@@ -55,11 +65,34 @@ export async function listCalendarEvents(
       .select("id, title, description, event_date, event_time, category, priority, is_done")
       .gte("event_date", startISO)
       .lte("event_date", endISO),
+    supabase
+      .from("tickets")
+      .select("id, code, title, due_date, priority, status, client:clients(nombre)")
+      .not("due_date", "is", null)
+      .neq("status", "done")
+      .gte("due_date", startISO)
+      .lte("due_date", endISO),
+    supabase
+      .from("organization_goals")
+      .select("id, title, scope, target_date, target_value, current_value")
+      .not("target_date", "is", null)
+      .gte("target_date", startISO)
+      .lte("target_date", endISO),
+    supabase
+      .from("proposals")
+      .select("id, code, title, valid_until, status, client:clients(nombre)")
+      .in("status", ["draft", "sent", "in_review", "negotiation"])
+      .not("valid_until", "is", null)
+      .gte("valid_until", startISO)
+      .lte("valid_until", endISO),
   ]);
 
   if (renewalErr && renewalErr.code !== "PGRST205") throw renewalErr;
   if (rotationErr && rotationErr.code !== "PGRST205") throw rotationErr;
   if (manualErr && manualErr.code !== "PGRST205") throw manualErr;
+  if (ticketErr && ticketErr.code !== "PGRST205") throw ticketErr;
+  if (goalErr && goalErr.code !== "PGRST205") throw goalErr;
+  if (proposalErr && proposalErr.code !== "PGRST205") throw proposalErr;
 
   const events: CalendarEvent[] = [];
 
@@ -151,6 +184,94 @@ export async function listCalendarEvents(
     });
   }
 
+  for (const row of (ticketRows ?? []) as Array<{
+    id: string;
+    code: string | null;
+    title: string;
+    due_date: string;
+    priority: "normal" | "high" | "fire";
+    status: "backlog" | "in_progress" | "blocked" | "in_review" | "done";
+    client: { nombre: string | null } | Array<{ nombre: string | null }> | null;
+  }>) {
+    const client = Array.isArray(row.client) ? row.client[0] : row.client;
+    events.push({
+      id: `${row.id}-ticket`,
+      source_id: row.id,
+      date: row.due_date,
+      status: row.due_date < todayISO ? "overdue" : "pending",
+      kind: "ticket",
+      href: "/tickets",
+      title: row.code ? `${row.code} · ${row.title}` : row.title,
+      subtitle: `Ticket${client?.nombre ? ` · ${client.nombre}` : ""}${row.priority !== "normal" ? ` · ${ticketPriorityLabel(row.priority)}` : ""}`,
+      total: 0,
+      client_name: client?.nombre ?? null,
+      manual_description: null,
+      manual_time: null,
+      manual_category: null,
+      manual_priority: null,
+      is_done: false,
+    });
+  }
+
+  for (const row of (goalRows ?? []) as Array<{
+    id: string;
+    title: string;
+    scope: "team" | "personal";
+    target_date: string;
+    target_value: number;
+    current_value: number;
+  }>) {
+    const target = Number(row.target_value ?? 0);
+    const current = Number(row.current_value ?? 0);
+    const progress = target > 0 ? Math.round((current / target) * 100) : 0;
+    const completed = target > 0 ? current >= target : false;
+    events.push({
+      id: `${row.id}-goal`,
+      source_id: row.id,
+      date: row.target_date,
+      status: completed ? "paid" : row.target_date < todayISO ? "overdue" : "pending",
+      kind: "goal",
+      href: "/organizacion/objetivos",
+      title: row.title,
+      subtitle: `Objetivo ${row.scope === "team" ? "equipo" : "personal"} · ${progress}%`,
+      total: 0,
+      client_name: null,
+      manual_description: null,
+      manual_time: null,
+      manual_category: null,
+      manual_priority: null,
+      is_done: completed,
+    });
+  }
+
+  for (const row of (proposalRows ?? []) as Array<{
+    id: string;
+    code: string | null;
+    title: string;
+    valid_until: string;
+    status: "draft" | "sent" | "in_review" | "negotiation" | "won" | "lost";
+    client: { nombre: string | null } | Array<{ nombre: string | null }> | null;
+  }>) {
+    const client = Array.isArray(row.client) ? row.client[0] : row.client;
+    events.push({
+      id: `${row.id}-proposal`,
+      source_id: row.id,
+      date: row.valid_until,
+      status: row.valid_until < todayISO ? "overdue" : "pending",
+      kind: "proposal",
+      href: "/propuestas",
+      title: row.code ? `${row.code} · ${row.title}` : row.title,
+      subtitle: `Vence propuesta${client?.nombre ? ` · ${client.nombre}` : ""}`,
+      total: 0,
+      client_name: client?.nombre ?? null,
+      manual_description: null,
+      manual_time: null,
+      manual_category: null,
+      manual_priority: null,
+      is_done: false,
+    });
+  }
+
   return events;
 }
 
@@ -165,5 +286,11 @@ function manualCategoryLabel(value: "meeting" | "deadline" | "milestone" | "note
 function manualPriorityLabel(value: "normal" | "high" | "critical") {
   if (value === "high") return "Prioridad alta";
   if (value === "critical") return "Prioridad crítica";
+  return "Prioridad normal";
+}
+
+function ticketPriorityLabel(value: "normal" | "high" | "fire") {
+  if (value === "fire") return "Urgencia fuego";
+  if (value === "high") return "Prioridad alta";
   return "Prioridad normal";
 }

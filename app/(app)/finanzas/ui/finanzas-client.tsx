@@ -158,6 +158,33 @@ export function FinanzasClient({
       ),
     [initialData.treasury.partnerBalances]
   );
+  const totalWithdrawnByPartners = useMemo(
+    () =>
+      initialData.treasury.partnerBalances.reduce(
+        (acc, row) => acc + row.withdrawnAmount,
+        0
+      ),
+    [initialData.treasury.partnerBalances]
+  );
+  const totalInjectedByPartners = useMemo(
+    () =>
+      initialData.treasury.partnerBalances.reduce(
+        (acc, row) => acc + row.injectedAmount,
+        0
+      ),
+    [initialData.treasury.partnerBalances]
+  );
+  const activePartnerCount = useMemo(
+    () =>
+      initialData.treasury.partnerBalances.filter((partner) => partner.movementCount > 0)
+        .length,
+    [initialData.treasury.partnerBalances]
+  );
+  const averageNetPerPartner = useMemo(() => {
+    const totalPartners = initialData.treasury.partnerBalances.length;
+    if (totalPartners === 0) return 0;
+    return Number((totalPartnerHeld / totalPartners).toFixed(2));
+  }, [initialData.treasury.partnerBalances.length, totalPartnerHeld]);
   const netVsCashDelta = useMemo(
     () => Number((initialData.kpis.netProfit - initialData.treasury.bankCash).toFixed(2)),
     [initialData.kpis.netProfit, initialData.treasury.bankCash]
@@ -334,11 +361,11 @@ export function FinanzasClient({
           <div className="grid gap-4 xl:grid-cols-3">
             <Card className="rounded-2xl border-brand/40 bg-brand/5 xl:col-span-2">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Caja del Banco</CardTitle>
+                <CardTitle className="text-base">Caja en banco</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Saldo físico disponible en banco (ingresos totales absolutos menos gastos totales absolutos).
+                  Saldo disponible actual calculado con todos los movimientos.
                 </p>
                 <p className="text-5xl font-semibold tracking-tight tabular-nums text-foreground">
                   {fmtMoney(initialData.treasury.bankCash)}
@@ -352,16 +379,14 @@ export function FinanzasClient({
 
             <Card className="rounded-2xl">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Resumen rápido</CardTitle>
+                <CardTitle className="text-base">Resumen socios</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <MetricRow label="Beneficio neto" value={fmtMoney(initialData.kpis.netProfit)} />
-                <MetricRow label="Dinero socios" value={fmtMoney(totalPartnerHeld)} />
-                <MetricRow
-                  label="Brecha neto vs caja"
-                  value={fmtMoney(netVsCashDelta)}
-                  tone={netVsCashDelta >= 0 ? "text-amber-700" : "text-rose-700"}
-                />
+                <MetricRow label="Socios activos" value={String(activePartnerCount)} />
+                <MetricRow label="Neto en socios" value={fmtMoney(totalPartnerHeld)} />
+                <MetricRow label="Retiros acumulados" value={fmtMoney(totalWithdrawnByPartners)} />
+                <MetricRow label="Inyecciones" value={fmtMoney(totalInjectedByPartners)} />
+                <MetricRow label="Media neta por socio" value={fmtMoney(averageNetPerPartner)} />
               </CardContent>
             </Card>
           </div>
@@ -375,11 +400,11 @@ export function FinanzasClient({
                 <p className="text-sm text-muted-foreground">No hay movimientos de socios para mostrar.</p>
               ) : (
                 <>
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {initialData.treasury.partnerBalances.map((partner) => (
                       <div
-                        key={partner.partnerName}
-                        className="rounded-xl border border-border/70 bg-card p-4"
+                        key={partner.partnerId}
+                        className="flex min-h-[220px] flex-col rounded-xl border border-border/70 bg-card p-4"
                       >
                         <p className="text-xs uppercase tracking-wider text-muted-foreground">
                           {partner.partnerName}
@@ -387,22 +412,43 @@ export function FinanzasClient({
                         <p className="mt-2 text-3xl font-semibold tabular-nums">
                           {fmtMoney(partner.netAmount)}
                         </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Neto retirado (retiros - inyecciones)
-                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">Neto retirado (retiros - inyecciones)</p>
+                        <div className="mt-4 space-y-2">
+                          <MetricRow label="Retirado" value={fmtMoney(partner.withdrawnAmount)} />
+                          <MetricRow label="Inyectado" value={fmtMoney(partner.injectedAmount)} />
+                          <MetricRow label="Movimientos" value={String(partner.movementCount)} />
+                        </div>
                       </div>
                     ))}
                   </div>
-                  <div className="rounded-xl border border-border/70 bg-muted/30 px-4 py-3">
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                      Total agregado socios
-                    </p>
-                    <p className="mt-1 text-xl font-semibold tabular-nums">
-                      {fmtMoney(totalPartnerHeld)}
-                    </p>
+                  <div className="grid gap-3 rounded-xl border border-border/70 bg-muted/30 px-4 py-3 md:grid-cols-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Total neto socios</p>
+                      <p className="mt-1 text-xl font-semibold tabular-nums">{fmtMoney(totalPartnerHeld)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Retiros totales</p>
+                      <p className="mt-1 text-xl font-semibold tabular-nums">{fmtMoney(totalWithdrawnByPartners)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Inyecciones totales</p>
+                      <p className="mt-1 text-xl font-semibold tabular-nums">{fmtMoney(totalInjectedByPartners)}</p>
+                    </div>
                   </div>
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border-border/70">
+            <CardContent className="grid gap-3 pt-6 md:grid-cols-3">
+              <MetricRow label="Beneficio neto" value={fmtMoney(initialData.kpis.netProfit)} />
+              <MetricRow label="Caja en banco" value={fmtMoney(initialData.treasury.bankCash)} />
+              <MetricRow
+                label="Brecha neto vs caja"
+                value={fmtMoney(netVsCashDelta)}
+                tone={netVsCashDelta >= 0 ? "text-amber-700" : "text-rose-700"}
+              />
             </CardContent>
           </Card>
         </TabsContent>

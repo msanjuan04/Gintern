@@ -35,7 +35,7 @@ function StatusBadge({
 }: {
   status: "paid" | "pending" | "overdue";
 }) {
-  if (status === "paid") return <Badge variant="success">Cobrado</Badge>;
+  if (status === "paid") return <Badge variant="success">Completado</Badge>;
   if (status === "pending") return <Badge variant="warning">Pendiente</Badge>;
   return <Badge variant="destructive">Vencido</Badge>;
 }
@@ -228,6 +228,42 @@ export function CalendarWorkspace({
             >
               Manuales
             </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter("ticket")}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs",
+                typeFilter === "ticket"
+                  ? "bg-brand text-brand-foreground"
+                  : "border border-border text-muted-foreground hover:bg-secondary"
+              )}
+            >
+              Tickets
+            </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter("goal")}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs",
+                typeFilter === "goal"
+                  ? "bg-brand text-brand-foreground"
+                  : "border border-border text-muted-foreground hover:bg-secondary"
+              )}
+            >
+              Objetivos
+            </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter("proposal")}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs",
+                typeFilter === "proposal"
+                  ? "bg-brand text-brand-foreground"
+                  : "border border-border text-muted-foreground hover:bg-secondary"
+              )}
+            >
+              Propuestas
+            </button>
           </CardContent>
         </Card>
 
@@ -279,7 +315,7 @@ export function CalendarWorkspace({
                     </div>
                     <p className="text-xs text-muted-foreground">{ev.subtitle ?? "—"}</p>
                     <div className="mt-1 flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">{ev.kind}</span>
+                      <span className="text-muted-foreground">{eventKindLabel(ev.kind)}</span>
                       <span className="tabular-nums">{ev.total > 0 ? fmtMoney(ev.total) : "—"}</span>
                     </div>
                     {ev.kind === "manual" && ev.source_id ? (
@@ -446,4 +482,14 @@ function ButtonMonth({
       {children}
     </Link>
   );
+}
+
+function eventKindLabel(kind: CalendarEvent["kind"]) {
+  if (kind === "subscription") return "Renovación";
+  if (kind === "credential") return "Credencial";
+  if (kind === "manual") return "Manual";
+  if (kind === "ticket") return "Ticket";
+  if (kind === "goal") return "Objetivo";
+  if (kind === "proposal") return "Propuesta";
+  return kind;
 }

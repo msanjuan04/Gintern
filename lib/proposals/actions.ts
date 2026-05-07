@@ -11,6 +11,7 @@ export async function createProposalAction(formData: FormData) {
   const parsed = createProposalSchema.safeParse({
     title: String(formData.get("title") ?? ""),
     clientId: String(formData.get("clientId") ?? ""),
+    ownerId: String(formData.get("ownerId") ?? "") || undefined,
     amount: String(formData.get("amount") ?? "0"),
     validUntil: String(formData.get("validUntil") ?? "") || undefined,
     notes: String(formData.get("notes") ?? "") || undefined,
@@ -29,12 +30,12 @@ export async function createProposalAction(formData: FormData) {
   const { data, error } = await supabase
     .from("proposals")
     .insert({
-    title: parsed.data.title,
-    client_id: parsed.data.clientId,
-    owner_id: user.id,
-    amount: parsed.data.amount,
-    valid_until: parsed.data.validUntil || null,
-    notes: parsed.data.notes || null,
+      title: parsed.data.title,
+      client_id: parsed.data.clientId,
+      owner_id: parsed.data.ownerId ?? user.id,
+      amount: parsed.data.amount,
+      valid_until: parsed.data.validUntil || null,
+      notes: parsed.data.notes || null,
     })
     .select("id")
     .single();

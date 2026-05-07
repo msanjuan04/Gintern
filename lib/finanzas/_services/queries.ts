@@ -49,7 +49,14 @@ export type FinanceDataBundle = {
   expenses: TransactionRow[];
   treasury: {
     bankCash: number;
-    partnerBalances: Array<{ partnerName: string; netAmount: number }>;
+    partnerBalances: Array<{
+      partnerId: string;
+      partnerName: string;
+      withdrawnAmount: number;
+      injectedAmount: number;
+      netAmount: number;
+      movementCount: number;
+    }>;
   };
   categoryExpenseSeries: Array<{ category: "saas" | "structural" | "variable"; value: number }>;
   reports: {
@@ -100,6 +107,8 @@ export async function getFinanceDataBundle(): Promise<FinanceDataBundle> {
     amount_total: Number(row.amount_total ?? 0),
   }));
 
+  const partnerDirectory = await listPartnersForTreasury(supabase);
+
   const operational = rows.filter((row) => row.category !== "internal_movement");
   const operationalIncome = operational
     .filter((row) => row.type === "income")
@@ -143,7 +152,7 @@ export async function getFinanceDataBundle(): Promise<FinanceDataBundle> {
     ),
   }));
 
-  const treasury = getTreasuryDistribution(rows);
+  const treasury = getTreasuryDistribution(rows, partnerDirectory);
   const reports = getReportsData(rows, operational);
 
   return {
@@ -163,7 +172,45 @@ export async function getFinanceDataBundle(): Promise<FinanceDataBundle> {
   };
 }
 
-export function getTreasuryDistribution(rows: TransactionRow[]) {
+type TreasuryPartnerDirectoryRow = {
+  id: string;
+  displayName: string;
+  matchTokens: string[];
+};
+
+async function listPartnersForTreasury(
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<TreasuryPartnerDirectoryRow[]> {
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, email, nombre, apellidos, role")
+    .eq("role", "socio")
+    .order("nombre", { ascending: true });
+
+  if (error?.code === "PGRST205") return [];
+  if (error) throw error;
+
+  return (data ?? []).map((row) => {
+    const fullName = [row.nombre, row.apellidos].filter(Boolean).join(" ").trim();
+    const displayName = fullName || row.email || "Socio";
+    const tokens = buildMatchTokens({
+      nombre: row.nombre ?? "",
+      apellidos: row.apellidos ?? "",
+      fullName,
+      email: row.email ?? "",
+    });
+    return {
+      id: row.id,
+      displayName,
+      matchTokens: Array.from(tokens),
+    };
+  });
+}
+
+export function getTreasuryDistribution(
+  rows: TransactionRow[],
+  partners: TreasuryPartnerDirectoryRow[]
+) {
   const bankIncome = rows
     .filter((row) => row.type === "income")
     .reduce((acc, row) => acc + row.amount_total, 0);
@@ -173,27 +220,139 @@ export function getTreasuryDistribution(rows: TransactionRow[]) {
   const bankCash = Number((bankIncome - bankExpense).toFixed(2));
 
   const internal = rows.filter((row) => row.category === "internal_movement");
-  const buildPartnerNet = (partnerName: "Sanju" | "Cortada") => {
-    const partnerRows = internal.filter((row) =>
-      row.concept.toLowerCase().includes(partnerName.toLowerCase())
-    );
-    const expenses = partnerRows
-      .filter((row) => row.type === "expense")
-      .reduce((acc, row) => acc + row.amount_total, 0);
-    const incomes = partnerRows
-      .filter((row) => row.type === "income")
-      .reduce((acc, row) => acc + row.amount_total, 0);
-    return Number((expenses - incomes).toFixed(2));
-  };
 
-  const partnerBalances = (["Sanju", "Cortada"] as const)
-    .map((partnerName) => ({
-      partnerName,
-      netAmount: buildPartnerNet(partnerName),
+  const base = new Map<
+    string,
+    {
+      partnerId: string;
+      partnerName: string;
+      withdrawnAmount: number;
+      injectedAmount: number;
+      movementCount: number;
+    }
+  >();
+  for (const partner of partners) {
+    base.set(partner.id, {
+      partnerId: partner.id,
+      partnerName: partner.displayName,
+      withdrawnAmount: 0,
+      injectedAmount: 0,
+      movementCount: 0,
+    });
+  }
+
+  for (const row of internal) {
+    const matchedPartnerId = matchPartnerForRow(row, partners);
+    if (!matchedPartnerId) continue;
+    const bucket = base.get(matchedPartnerId);
+    if (!bucket) continue;
+    if (row.type === "expense") bucket.withdrawnAmount += row.amount_total;
+    if (row.type === "income") bucket.injectedAmount += row.amount_total;
+    bucket.movementCount += 1;
+  }
+
+  const partnerBalances = Array.from(base.values())
+    .map((row) => ({
+      ...row,
+      withdrawnAmount: Number(row.withdrawnAmount.toFixed(2)),
+      injectedAmount: Number(row.injectedAmount.toFixed(2)),
+      netAmount: Number((row.withdrawnAmount - row.injectedAmount).toFixed(2)),
     }))
-    .filter((row) => row.netAmount !== 0);
+    .sort((a, b) => b.netAmount - a.netAmount);
 
   return { bankCash, partnerBalances };
+}
+
+function tokenize(value: string) {
+  const STOPWORDS = new Set([
+    "de",
+    "del",
+    "la",
+    "el",
+    "los",
+    "las",
+    "y",
+    "da",
+    "do",
+    "dos",
+  ]);
+
+  return normalize(value)
+    .split(/\s+|[._\-@]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 4 && !STOPWORDS.has(token));
+}
+
+function buildMatchTokens({
+  nombre,
+  apellidos,
+  fullName,
+  email,
+}: {
+  nombre: string;
+  apellidos: string;
+  fullName: string;
+  email: string;
+}) {
+  const tokens = new Set<string>();
+
+  for (const value of [nombre, apellidos, fullName]) {
+    for (const token of tokenize(value)) {
+      tokens.add(token);
+      if (token.length >= 5) tokens.add(token.slice(0, 5));
+    }
+  }
+
+  const local = normalize(email.split("@")[0] ?? "");
+  if (local) {
+    tokens.add(local);
+    if (local.length >= 5) tokens.add(local.slice(0, 5));
+    // Caso típico: "msanjuan" -> "sanjuan" y "sanju"
+    if (/^[a-z][a-z]{5,}$/.test(local)) {
+      const withoutFirst = local.slice(1);
+      tokens.add(withoutFirst);
+      if (withoutFirst.length >= 5) tokens.add(withoutFirst.slice(0, 5));
+    }
+  }
+
+  // Alias manuales para nombres usados en movimientos internos legacy.
+  if (tokens.has("sanjuan")) tokens.add("sanju");
+  if (tokens.has("martinez")) tokens.add("jmartinez");
+  if (tokens.has("lago")) tokens.add("hlago");
+  if (tokens.has("sostres")) tokens.add("asostres");
+
+  return tokens;
+}
+
+function normalize(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function matchPartnerForRow(
+  row: TransactionRow,
+  partners: TreasuryPartnerDirectoryRow[]
+): string | null {
+  const concept = normalize(row.concept);
+  let best: { id: string; score: number } | null = null;
+  for (const partner of partners) {
+    let score = 0;
+    for (const token of partner.matchTokens) {
+      if (token.length < 4) continue;
+      const bounded = new RegExp(`(^|[^a-z0-9])${escapeForRegExp(token)}([^a-z0-9]|$)`, "i");
+      if (bounded.test(concept)) score += token.length;
+    }
+    if (score > 0 && (!best || score > best.score)) {
+      best = { id: partner.id, score };
+    }
+  }
+  return best?.id ?? null;
+}
+
+function escapeForRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function monthKey(dateIso: string) {
