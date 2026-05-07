@@ -7,9 +7,10 @@ export type CalendarEventStatus = "paid" | "pending" | "overdue";
 
 export type CalendarEvent = {
   id: string;
+  source_id: string | null;
   date: string; // YYYY-MM-DD (la fecha en la que se pinta)
   status: CalendarEventStatus;
-  kind: "invoice" | "subscription" | "credential";
+  kind: "invoice" | "subscription" | "credential" | "manual";
   href: string;
   title: string;
   subtitle: string | null;
@@ -22,6 +23,11 @@ export type CalendarEvent = {
   fecha_cobro: string | null;
   source_status: InvoiceStatus;
   scope: Scope;
+  manual_description?: string | null;
+  manual_time?: string | null;
+  manual_category?: "meeting" | "deadline" | "milestone" | "note" | "other" | null;
+  manual_priority?: "normal" | "high" | "critical" | null;
+  is_done?: boolean;
 };
 
 type Row = {
@@ -59,6 +65,7 @@ export async function listCalendarEvents(
     { data: paidRows, error: paidErr },
     { data: renewalRows, error: renewalErr },
     { data: rotationRows, error: rotationErr },
+    { data: manualRows, error: manualErr },
   ] =
     await Promise.all([
       supabase
@@ -87,6 +94,11 @@ export async function listCalendarEvents(
         .not("rotation_due_on", "is", null)
         .gte("rotation_due_on", startISO)
         .lte("rotation_due_on", endISO),
+      supabase
+        .from("calendar_manual_events")
+        .select("id, title, description, event_date, event_time, category, priority, is_done")
+        .gte("event_date", startISO)
+        .lte("event_date", endISO),
     ]);
 
   // Tabla legacy `invoices` eliminada en migración de limpieza: no romper calendario.
@@ -94,6 +106,7 @@ export async function listCalendarEvents(
   if (paidErr && paidErr.code !== "PGRST205") throw paidErr;
   if (renewalErr && renewalErr.code !== "PGRST205") throw renewalErr;
   if (rotationErr && rotationErr.code !== "PGRST205") throw rotationErr;
+  if (manualErr && manualErr.code !== "PGRST205") throw manualErr;
 
   const events: CalendarEvent[] = [];
 
@@ -102,6 +115,7 @@ export async function listCalendarEvents(
       row.fecha_vencimiento < todayISO ? "overdue" : "pending";
     events.push({
       id: `${row.id}-due`,
+      source_id: row.id,
       date: row.fecha_vencimiento,
       status,
       kind: "invoice",
@@ -117,6 +131,11 @@ export async function listCalendarEvents(
       fecha_cobro: row.fecha_cobro,
       source_status: row.status,
       scope: row.scope,
+      manual_description: null,
+      manual_time: null,
+      manual_category: null,
+      manual_priority: null,
+      is_done: false,
     });
   }
 
@@ -124,6 +143,7 @@ export async function listCalendarEvents(
     if (!row.fecha_cobro) continue;
     events.push({
       id: `${row.id}-paid`,
+      source_id: row.id,
       date: row.fecha_cobro,
       status: "paid",
       kind: "invoice",
@@ -139,6 +159,11 @@ export async function listCalendarEvents(
       fecha_cobro: row.fecha_cobro,
       source_status: row.status,
       scope: row.scope,
+      manual_description: null,
+      manual_time: null,
+      manual_category: null,
+      manual_priority: null,
+      is_done: true,
     });
   }
 
@@ -152,6 +177,7 @@ export async function listCalendarEvents(
     if (!row.next_renewal) continue;
     events.push({
       id: `${row.id}-renewal`,
+      source_id: row.id,
       date: row.next_renewal,
       status: "pending",
       kind: "subscription",
@@ -167,6 +193,11 @@ export async function listCalendarEvents(
       fecha_cobro: null,
       source_status: "sent",
       scope: "gnerai",
+      manual_description: null,
+      manual_time: null,
+      manual_category: null,
+      manual_priority: null,
+      is_done: false,
     });
   }
 
@@ -181,6 +212,7 @@ export async function listCalendarEvents(
     const client = Array.isArray(row.client) ? row.client[0] : row.client;
     events.push({
       id: `${row.id}-rotation`,
+      source_id: row.id,
       date: row.rotation_due_on,
       status: row.rotation_due_on < todayISO ? "overdue" : "pending",
       kind: "credential",
@@ -199,10 +231,66 @@ export async function listCalendarEvents(
       fecha_cobro: null,
       source_status: "sent",
       scope: "gnerai",
+      manual_description: null,
+      manual_time: null,
+      manual_category: null,
+      manual_priority: null,
+      is_done: false,
+    });
+  }
+
+  for (const row of (manualRows ?? []) as Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    event_date: string;
+    event_time: string | null;
+    category: "meeting" | "deadline" | "milestone" | "note" | "other";
+    priority: "normal" | "high" | "critical";
+    is_done: boolean;
+  }>) {
+    const overdue = row.event_date < todayISO;
+    events.push({
+      id: `${row.id}-manual`,
+      source_id: row.id,
+      date: row.event_date,
+      status: row.is_done ? "paid" : overdue ? "overdue" : "pending",
+      kind: "manual",
+      href: "/calendario",
+      title: row.title,
+      subtitle: `${manualCategoryLabel(row.category)}${row.event_time ? ` · ${row.event_time.slice(0, 5)}` : ""}${row.priority !== "normal" ? ` · ${manualPriorityLabel(row.priority)}` : ""}`,
+      invoice_id: null,
+      invoice_number: null,
+      total: 0,
+      base_imponible: 0,
+      client_name: null,
+      fecha_vencimiento: row.event_date,
+      fecha_cobro: null,
+      source_status: "sent",
+      scope: "gnerai",
+      manual_description: row.description,
+      manual_time: row.event_time,
+      manual_category: row.category,
+      manual_priority: row.priority,
+      is_done: row.is_done,
     });
   }
 
   return events;
+}
+
+function manualCategoryLabel(value: "meeting" | "deadline" | "milestone" | "note" | "other") {
+  if (value === "meeting") return "Reunión";
+  if (value === "deadline") return "Fecha límite";
+  if (value === "milestone") return "Hito";
+  if (value === "note") return "Nota";
+  return "Evento";
+}
+
+function manualPriorityLabel(value: "normal" | "high" | "critical") {
+  if (value === "high") return "Prioridad alta";
+  if (value === "critical") return "Prioridad crítica";
+  return "Prioridad normal";
 }
 
 export async function listUpcoming(
@@ -232,6 +320,7 @@ export async function listUpcoming(
       row.fecha_vencimiento < fromISO ? "overdue" : "pending";
     return {
       id: `${row.id}-due`,
+      source_id: row.id,
       date: row.fecha_vencimiento,
       status,
       kind: "invoice",
@@ -247,6 +336,11 @@ export async function listUpcoming(
       fecha_cobro: row.fecha_cobro,
       source_status: row.status,
       scope: row.scope,
+      manual_description: null,
+      manual_time: null,
+      manual_category: null,
+      manual_priority: null,
+      is_done: false,
     };
   });
 }

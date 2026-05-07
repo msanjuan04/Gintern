@@ -1,27 +1,18 @@
 import Link from "next/link";
 import {
   endOfMonth,
-  endOfWeek,
   format,
   startOfMonth,
-  startOfWeek,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { createCalendarManualEventAction } from "@/lib/calendar/actions";
 import { listCalendarEvents } from "@/lib/calendar/queries";
 import { fmtMoney } from "@/lib/utils";
 
-import { CalendarGrid } from "./calendar-grid";
+import { CalendarWorkspace } from "./calendar-workspace";
 
 export const metadata = {
   title: "Calendario · GNERAI Finance",
@@ -48,13 +39,11 @@ export default async function CalendarioPage({
   const monthDate = new Date(year, month - 1, 1);
   const monthStart = startOfMonth(monthDate);
   const monthEnd = endOfMonth(monthDate);
-  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
 
   const todayISO = format(now, "yyyy-MM-dd");
   const events = await listCalendarEvents(
-    format(gridStart, "yyyy-MM-dd"),
-    format(gridEnd, "yyyy-MM-dd"),
+    format(monthStart, "yyyy-MM-dd"),
+    format(monthEnd, "yyyy-MM-dd"),
     todayISO
   );
 
@@ -85,38 +74,16 @@ export default async function CalendarioPage({
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Calendario</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Vencimientos y cobros del mes. Click en cada chip para ir al
-            detalle.
+            Centro de fechas clave: vencimientos, renovaciones y rotaciones.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="icon">
-            <Link
-              href={`/calendario?y=${prevYear}&m=${prevMonth}`}
-              aria-label="Mes anterior"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <span className="min-w-[170px] text-center text-sm font-medium capitalize">
-            {format(monthDate, "MMMM yyyy", { locale: es })}
-          </span>
-          <Button asChild variant="ghost" size="icon">
-            <Link
-              href={`/calendario?y=${nextYear}&m=${nextMonth}`}
-              aria-label="Mes siguiente"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link
-              href={`/calendario?y=${now.getFullYear()}&m=${now.getMonth() + 1}`}
-            >
-              Hoy
-            </Link>
-          </Button>
-        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link
+            href={`/calendario?y=${now.getFullYear()}&m=${now.getMonth() + 1}`}
+          >
+            Volver a hoy
+          </Link>
+        </Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -133,68 +100,74 @@ export default async function CalendarioPage({
         <SummaryCard label="Vencido" value={vencidoTotal} color="rose" />
       </div>
 
-      <Card className="overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <CardTitle className="capitalize">
-              {format(monthDate, "MMMM yyyy", { locale: es })}
-            </CardTitle>
-          </div>
-          <Legend />
-        </CardHeader>
-        <CardContent className="p-0">
-          <CalendarGrid year={year} month={month} events={events} />
+      <details className="group rounded-lg border border-border/70 bg-card">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-medium">
+          <span>Añadir evento manual</span>
+          <span className="text-xs text-muted-foreground group-open:hidden">Abrir</span>
+          <span className="hidden text-xs text-muted-foreground group-open:inline">Cerrar</span>
+        </summary>
+        <CardContent className="border-t border-border/60 pt-4">
+          <form action={createCalendarManualEventAction} className="grid gap-3 md:grid-cols-6">
+            <input
+              name="title"
+              required
+              placeholder="Añadir reunión, hito, deadline..."
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm md:col-span-2"
+            />
+            <input
+              name="date"
+              type="date"
+              required
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            />
+            <input
+              name="time"
+              type="time"
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            />
+            <select
+              name="category"
+              defaultValue="meeting"
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="meeting">Reunión</option>
+              <option value="deadline">Fecha límite</option>
+              <option value="milestone">Hito</option>
+              <option value="note">Nota</option>
+              <option value="other">Otro</option>
+            </select>
+            <select
+              name="priority"
+              defaultValue="normal"
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="normal">Normal</option>
+              <option value="high">Alta</option>
+              <option value="critical">Crítica</option>
+            </select>
+            <textarea
+              name="description"
+              placeholder="Contexto opcional"
+              className="min-h-20 rounded-md border border-input bg-background p-3 text-sm md:col-span-5"
+            />
+            <button
+              type="submit"
+              className="h-10 rounded-md bg-brand px-4 text-sm font-medium text-brand-foreground md:self-end"
+            >
+              Guardar evento
+            </button>
+          </form>
         </CardContent>
-      </Card>
+      </details>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Detalle del mes</CardTitle>
-          <CardDescription>
-            Lista unificada de facturas, renovaciones y rotaciones.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {monthEvents.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No hay eventos en este mes.
-            </p>
-          ) : (
-            <ul className="divide-y divide-border/60">
-              {monthEvents
-                .slice()
-                .sort((a, b) => a.date.localeCompare(b.date))
-                .map((ev) => (
-                  <li
-                    key={ev.id}
-                    className="flex items-center gap-4 py-3 text-sm"
-                  >
-                    <span className="w-20 shrink-0 text-xs font-medium text-muted-foreground">
-                      {format(
-                        new Date(ev.date + "T00:00:00"),
-                        "d MMM",
-                        { locale: es }
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <Link href={ev.href} className="font-medium hover:underline">
-                        {ev.title}
-                      </Link>
-                      <div className="text-xs text-muted-foreground">{ev.subtitle ?? "—"}</div>
-                    </div>
-                    {ev.total > 0 ? (
-                      <span className="tabular-nums">{fmtMoney(ev.total)}</span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                    <StatusBadge status={ev.status} />
-                  </li>
-                ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      <CalendarWorkspace
+        year={year}
+        month={month}
+        events={events}
+        todayISO={todayISO}
+        prevHref={`/calendario?y=${prevYear}&m=${prevMonth}`}
+        nextHref={`/calendario?y=${nextYear}&m=${nextMonth}`}
+      />
     </div>
   );
 }
@@ -231,31 +204,3 @@ function SummaryCard({
   );
 }
 
-function Legend() {
-  return (
-    <div className="flex items-center gap-3 text-xs">
-      <span className="flex items-center gap-1.5">
-        <span className="h-2 w-2 rounded-full bg-emerald-500" />
-        Cobrado
-      </span>
-      <span className="flex items-center gap-1.5">
-        <span className="h-2 w-2 rounded-full bg-amber-500" />
-        Pendiente
-      </span>
-      <span className="flex items-center gap-1.5">
-        <span className="h-2 w-2 rounded-full bg-rose-500" />
-        Vencido
-      </span>
-    </div>
-  );
-}
-
-function StatusBadge({
-  status,
-}: {
-  status: "paid" | "pending" | "overdue";
-}) {
-  if (status === "paid") return <Badge variant="success">Cobrado</Badge>;
-  if (status === "pending") return <Badge variant="warning">Pendiente</Badge>;
-  return <Badge variant="destructive">Vencido</Badge>;
-}
