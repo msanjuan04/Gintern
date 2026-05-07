@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { createActivityLog } from "@/lib/activity-logs/server";
@@ -12,6 +13,7 @@ const credentialSchema = z.object({
   scope: z.enum(["internal", "client"]),
   clientId: z.string().uuid().optional(),
   environment: z.enum(["prod", "staging", "dev", "other"]),
+  password: z.string().max(500).optional(),
   secretHint: z.string().max(200).optional(),
   vaultSecretRef: z.string().max(200).optional(),
   rotationDueOn: z.string().optional(),
@@ -28,6 +30,7 @@ export async function createCredentialAction(formData: FormData) {
     scope: String(formData.get("scope") ?? "internal"),
     clientId: String(formData.get("clientId") ?? "") || undefined,
     environment: String(formData.get("environment") ?? "prod"),
+    password: String(formData.get("password") ?? "") || undefined,
     secretHint: String(formData.get("secretHint") ?? "") || undefined,
     vaultSecretRef: String(formData.get("vaultSecretRef") ?? "") || undefined,
     rotationDueOn: String(formData.get("rotationDueOn") ?? "") || undefined,
@@ -50,7 +53,7 @@ export async function createCredentialAction(formData: FormData) {
       client_id: parsed.data.scope === "client" ? parsed.data.clientId ?? null : null,
       environment: parsed.data.environment,
       secret_hint: parsed.data.secretHint || null,
-      vault_secret_ref: parsed.data.vaultSecretRef || null,
+      vault_secret_ref: parsed.data.vaultSecretRef || parsed.data.password || null,
       rotation_due_on: parsed.data.rotationDueOn || null,
       notes: parsed.data.notes || null,
       owner_id: user.id,
@@ -74,4 +77,47 @@ export async function createCredentialAction(formData: FormData) {
 
   revalidatePath("/boveda");
   revalidatePath("/logs");
+}
+
+type UnlockState = { ok: boolean; message?: string };
+
+export async function unlockBovedaSecretsAction(
+  _prev: UnlockState,
+  formData: FormData
+): Promise<UnlockState> {
+  const password = String(formData.get("masterPassword") ?? "");
+  const expected = process.env.BOVEDA_MASTER_PASSWORD;
+
+  if (!expected) {
+    return {
+      ok: false,
+      message: "Configura BOVEDA_MASTER_PASSWORD en variables de entorno.",
+    };
+  }
+
+  if (password !== expected) {
+    return { ok: false, message: "Contraseña maestra incorrecta." };
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set("boveda_unlocked", "1", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 8,
+  });
+
+  revalidatePath("/boveda/clientes");
+  revalidatePath("/boveda/internas");
+  return { ok: true };
+}
+
+export async function lockBovedaSecretsAction(): Promise<UnlockState> {
+  const cookieStore = await cookies();
+  cookieStore.delete("boveda_unlocked");
+
+  revalidatePath("/boveda/clientes");
+  revalidatePath("/boveda/internas");
+  return { ok: true };
 }

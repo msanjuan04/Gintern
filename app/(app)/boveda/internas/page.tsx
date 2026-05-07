@@ -1,16 +1,18 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createCredentialAction } from "@/lib/boveda/actions";
-import { listCredentials } from "@/lib/boveda/queries";
+import { isBovedaUnlocked, listCredentials } from "@/lib/boveda/queries";
 
 import { BovedaNav } from "../ui/boveda-nav";
+import { BovedaUnlockControls } from "../ui/boveda-unlock-controls";
 
 export const metadata = {
   title: "Contraseñas GNERAI · GNERAI",
 };
 
 export default async function BovedaInternasPage() {
-  const credentials = (await listCredentials()).filter((item) => item.scope === "internal");
+  const [allCredentials, unlocked] = await Promise.all([listCredentials(), isBovedaUnlocked()]);
+  const credentials = allCredentials.filter((item) => item.scope === "internal");
   const today = new Date().toISOString().slice(0, 10);
   const expiredCount = credentials.filter(
     (item) => item.rotation_due_on && item.rotation_due_on < today
@@ -23,6 +25,7 @@ export default async function BovedaInternasPage() {
         <p className="text-sm text-muted-foreground">
           Credenciales internas de la agencia, separadas de las de clientes.
         </p>
+        <BovedaUnlockControls unlocked={unlocked} />
         <BovedaNav active="internas" />
       </header>
 
@@ -48,30 +51,45 @@ export default async function BovedaInternasPage() {
                 {credentials.map((item) => (
                   <article
                     key={item.id}
-                    className="grid gap-2 rounded-md border border-border/70 p-3 md:grid-cols-[1fr_auto]"
+                    className="rounded-md border border-border/70 p-3"
                   >
-                    <div>
-                      <p className="text-sm font-medium">{item.service}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.account_identifier} · owner: {item.owner_name ?? "Equipo"}
-                      </p>
-                      {(item.secret_hint || item.vault_secret_ref) && (
-                        <p className="text-xs text-muted-foreground">
-                          {item.secret_hint ?? "Sin pista"} · {item.vault_secret_ref ?? "Sin ref Vault"}
-                        </p>
-                      )}
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium">{item.service}</p>
+                        <p className="text-[11px] text-muted-foreground">Credencial interna</p>
+                      </div>
+                      <div className="flex flex-wrap items-start justify-end gap-2">
+                        <Badge variant="outline">{formatEnvironment(item.environment)}</Badge>
+                        <Badge
+                          variant={
+                            item.rotation_due_on && item.rotation_due_on < today
+                              ? "destructive"
+                              : "secondary"
+                          }
+                        >
+                          {item.rotation_due_on ? `Rotación ${item.rotation_due_on}` : "Sin rotación"}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-start justify-end gap-2">
-                      <Badge variant="outline">{formatEnvironment(item.environment)}</Badge>
-                      <Badge
-                        variant={
-                          item.rotation_due_on && item.rotation_due_on < today
-                            ? "destructive"
-                            : "secondary"
-                        }
-                      >
-                        {item.rotation_due_on ? `Rotación ${item.rotation_due_on}` : "Sin rotación"}
-                      </Badge>
+                    <div className="mt-2 grid gap-2 text-xs md:grid-cols-2">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Cuenta</p>
+                        <p className="truncate font-medium">{item.account_identifier}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Owner</p>
+                        <p className="truncate font-medium">{item.owner_name ?? "Equipo"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Pista</p>
+                        <p className="truncate font-medium">{item.secret_hint ?? "Sin pista"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Secreto</p>
+                        <p className="truncate font-mono">
+                          {item.vault_secret_ref ?? (item.has_secret ? "•••••••• (bloqueada)" : "Sin secreto")}
+                        </p>
+                      </div>
                     </div>
                   </article>
                 ))}
@@ -112,6 +130,12 @@ export default async function BovedaInternasPage() {
               <input
                 name="rotationDueOn"
                 type="date"
+                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              />
+              <input
+                name="password"
+                type="password"
+                placeholder="Contraseña (opcional)"
                 className="h-10 rounded-md border border-input bg-background px-3 text-sm"
               />
               <input

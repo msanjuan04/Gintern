@@ -27,7 +27,7 @@ const NAV = [
   { href: "/finanzas", label: "Finanzas", icon: BriefcaseBusiness },
   { href: "/organizacion/objetivos", label: "Organizacion", icon: ClipboardCheck },
   { href: "/boveda", label: "Contraseñas", icon: FolderLock },
-  { href: "/wiki", label: "Wiki", icon: BookOpen },
+  { href: "/wiki", label: "Drive", icon: BookOpen },
   { href: "/calendario", label: "Calendario", icon: Calendar },
   { href: "/logs", label: "Logs", icon: History },
 ];

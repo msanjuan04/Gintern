@@ -10,7 +10,8 @@ const pageSchema = z.object({
   title: z.string().min(3, "Título obligatorio."),
   area: z.string().min(2, "Área obligatoria."),
   subcategory: z.string().optional(),
-  content: z.string().min(10, "El contenido es demasiado corto."),
+  driveUrl: z.string().url("URL de Drive no válida."),
+  content: z.string().optional(),
   isPublished: z.boolean().default(true),
 });
 
@@ -29,7 +30,8 @@ export async function createWikiPageAction(formData: FormData) {
     title: String(formData.get("title") ?? ""),
     area: String(formData.get("area") ?? ""),
     subcategory: String(formData.get("subcategory") ?? "") || undefined,
-    content: String(formData.get("content") ?? ""),
+    driveUrl: String(formData.get("driveUrl") ?? ""),
+    content: String(formData.get("content") ?? "") || undefined,
     isPublished: formData.get("isPublished") === "on",
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos.");
@@ -48,6 +50,10 @@ export async function createWikiPageAction(formData: FormData) {
   const category = normalizedSubcategory
     ? `${normalizedArea}/${normalizedSubcategory}`
     : normalizedArea;
+  const normalizedContent = parsed.data.content?.trim();
+  const content = normalizedContent?.length
+    ? `Drive: ${parsed.data.driveUrl}\n\n${normalizedContent}`
+    : `Drive: ${parsed.data.driveUrl}`;
 
   const { data, error } = await supabase
     .from("knowledge_pages")
@@ -55,7 +61,7 @@ export async function createWikiPageAction(formData: FormData) {
       slug,
       title: parsed.data.title,
       category,
-      content: parsed.data.content,
+      content,
       is_published: parsed.data.isPublished,
       owner_id: user.id,
       last_edited_by: user.id,

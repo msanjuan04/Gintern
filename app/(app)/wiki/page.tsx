@@ -1,229 +1,202 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createWikiPageAction } from "@/lib/wiki/actions";
 import { listWikiPages } from "@/lib/wiki/queries";
-import { BookOpen, Folder, FolderOpen } from "lucide-react";
+import { ExternalLink, Folder, FolderOpen } from "lucide-react";
 
-const AREA_CONFIG: Array<{ key: string; label: string; subfolders: string[] }> = [
-  { key: "marketing", label: "Marketing", subfolders: ["branding", "creacion-contenido"] },
-  { key: "clientes", label: "Clientes", subfolders: ["onboarding", "seguimiento"] },
-  { key: "operaciones", label: "Operaciones", subfolders: ["procesos", "checklists"] },
-  { key: "ventas", label: "Ventas", subfolders: ["propuestas", "cierres"] },
+const AREA_CONFIG: Array<{ key: string; label: string; description: string; subfolders: string[] }> = [
+  {
+    key: "accesos",
+    label: "Accesos",
+    description: "Credenciales, usuarios, invitaciones y puntos de entrada a herramientas.",
+    subfolders: [],
+  },
+  {
+    key: "administrativo-legal",
+    label: "Administrativo & Legal",
+    description: "Documentación jurídica y administrativa del negocio.",
+    subfolders: ["contratos", "facturas"],
+  },
+  {
+    key: "clientes",
+    label: "Clientes",
+    description: "Una carpeta por cliente con entregables, acuerdos y seguimiento.",
+    subfolders: ["por-cliente"],
+  },
+  {
+    key: "contabilidad",
+    label: "Contabilidad",
+    description: "Cierres, reportes, impuestos y control económico mensual.",
+    subfolders: [],
+  },
+  {
+    key: "disenos-webs",
+    label: "Diseños Webs",
+    description: "Recursos visuales, prototipos, versiones y activos web.",
+    subfolders: [],
+  },
+  {
+    key: "documentos-internos",
+    label: "Documentos Internos",
+    description: "Documentación operativa interna, políticas y coordinación de equipo.",
+    subfolders: [],
+  },
+  {
+    key: "marketing",
+    label: "Marketing",
+    description: "Estrategia, branding y piezas para campañas y contenido.",
+    subfolders: ["branding", "estrategia-marketing"],
+  },
+  {
+    key: "tareas-planning",
+    label: "Tareas & Planning",
+    description: "Planificación de trabajo, roadmaps, sprints y organización semanal.",
+    subfolders: [],
+  },
+  {
+    key: "tech-docs",
+    label: "Tech Docs",
+    description: "Guías técnicas, arquitectura, decisiones y documentación de desarrollo.",
+    subfolders: [],
+  },
 ];
 
 function prettifyFolderName(value: string) {
-  if (value === "creacion-contenido") return "Creacion de contenido";
-  if (value === "onboarding") return "Onboarding";
-  if (value === "checklists") return "Checklists";
+  if (value === "por-cliente") return "Por cliente";
+  if (value === "estrategia-marketing") return "Estrategia de marketing";
   return value
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 }
 
+function extractDriveUrl(content: string) {
+  const match = content.match(/https?:\/\/drive\.google\.com\/[^\s)]+/i);
+  return match?.[0] ?? null;
+}
+
 export const metadata = {
-  title: "Wiki · GNERAI",
+  title: "Drive · GNERAI",
 };
 
 export default async function WikiPage() {
   const pages = await listWikiPages();
-  const recentByCategory = new Map<string, number>();
-  const areaStats = new Map<string, { total: number; subfolders: Map<string, number> }>();
-  for (const page of pages) {
-    recentByCategory.set(
-      page.category,
-      (recentByCategory.get(page.category) ?? 0) + 1
-    );
-
-    const [areaRaw, subfolderRaw] = page.category.toLowerCase().split("/");
-    const area = areaRaw || "general";
-    const subfolder = subfolderRaw || "_root";
-    const current = areaStats.get(area) ?? { total: 0, subfolders: new Map<string, number>() };
-    current.total += 1;
-    current.subfolders.set(subfolder, (current.subfolders.get(subfolder) ?? 0) + 1);
-    areaStats.set(area, current);
-  }
+  const rootDriveUrl =
+    process.env.NEXT_PUBLIC_WIKI_DRIVE_URL ?? "https://drive.google.com/drive/my-drive";
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Wiki Drive</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Drive</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Espacio visual de documentación por áreas y carpetas.
+            Mapa de referencia para saber qué va en cada carpeta del Drive compartido.
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">{pages.length} páginas</Badge>
-          <Badge variant="secondary">{recentByCategory.size} categorías</Badge>
         </div>
       </div>
 
+      <Card className="border-brand/30 bg-brand/5">
+        <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">Drive maestro de GNERAI</p>
+            <p className="text-xs text-muted-foreground">
+              Gestionad carpetas y archivos directamente en Drive. Esta vista sirve como guía rápida.
+            </p>
+          </div>
+          <Link
+            href={rootDriveUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-11 items-center gap-2 rounded-md bg-brand px-5 text-sm font-medium text-brand-foreground hover:opacity-95"
+          >
+            Abrir Drive
+            <ExternalLink className="h-4 w-4" />
+          </Link>
+        </CardContent>
+      </Card>
+
       <Card className="border-brand/20">
         <CardHeader>
-          <CardTitle className="text-lg">Explorador de carpetas</CardTitle>
+          <CardTitle className="text-lg">Guía de carpetas</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {AREA_CONFIG.map((area) => {
-            const stats = areaStats.get(area.key);
-            return (
-              <article key={area.key} className="rounded-xl border border-border/70 bg-card p-4">
+        <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {AREA_CONFIG.map((area) => (
+            <article key={area.key} className="rounded-xl border border-border/70 bg-card p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
                     <Folder className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <Badge variant="outline">{stats?.total ?? 0}</Badge>
                 </div>
                 <p className="mt-3 text-sm font-semibold">{area.label}</p>
-                <div className="mt-3 space-y-2">
-                  {area.subfolders.map((sub) => (
-                    <div
-                      key={sub}
-                      className="flex items-center justify-between rounded-md border border-border/60 px-2.5 py-1.5 text-xs"
-                    >
-                      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                        <FolderOpen className="h-3.5 w-3.5" />
-                        {prettifyFolderName(sub)}
-                      </span>
-                      <span className="tabular-nums">
-                        {stats?.subfolders.get(sub) ?? 0}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{area.description}</p>
+                {area.subfolders.length > 0 ? (
+                  <div className="mt-3 space-y-2">
+                    {area.subfolders.map((sub) => (
+                      <div
+                        key={sub}
+                        className="flex items-center rounded-md border border-border/60 px-2.5 py-1.5 text-xs"
+                      >
+                        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                          <FolderOpen className="h-3.5 w-3.5" />
+                          {prettifyFolderName(sub)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </article>
-            );
-          })}
+          ))}
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-[1.25fr_1fr]">
+      {pages.length > 0 && (
         <div className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Archivos recientes</CardTitle>
             </CardHeader>
             <CardContent>
-              {pages.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Todavía no hay páginas creadas.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {pages.map((page) => (
-                    <article
-                      key={page.id}
-                      className="grid gap-2 rounded-md border border-border/70 p-3 md:grid-cols-[1fr_auto]"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{page.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          /{page.slug} · {page.owner_name ?? "Equipo"} · <span className="font-mono">{page.category}</span>
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{page.category}</Badge>
-                        <Badge variant={page.is_published ? "success" : "muted"}>
-                          {page.is_published ? "Publicada" : "Borrador"}
-                        </Badge>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Plantillas rápidas</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3 md:grid-cols-2">
-              <TemplateCard
-                title="Carpeta Marketing"
-                body="Branding y creación de contenido listos para documentar."
-              />
-              <TemplateCard
-                title="Carpeta Clientes"
-                body="Onboarding, seguimiento y acuerdos por cliente."
-              />
-              <TemplateCard
-                title="Carpeta Operaciones"
-                body="Procesos internos, checklists y playbooks."
-              />
-              <TemplateCard
-                title="Carpeta Ventas"
-                body="Propuestas, scripts de cierre y FAQs comerciales."
-              />
+              <div className="space-y-2">
+                {pages.map((page) => (
+                  (() => {
+                    const driveUrl = extractDriveUrl(page.content);
+                    return (
+                      <article
+                        key={page.id}
+                        className="grid gap-2 rounded-md border border-border/70 p-3 md:grid-cols-[1fr_auto]"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{page.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            /{page.slug} · {page.owner_name ?? "Equipo"} ·{" "}
+                            <span className="font-mono">{page.category}</span>
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {driveUrl ? (
+                            <Link
+                              href={driveUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-brand hover:bg-secondary"
+                            >
+                              Abrir <ExternalLink className="h-3.5 w-3.5" />
+                            </Link>
+                          ) : null}
+                          <Badge variant="outline">{page.category}</Badge>
+                          <Badge variant={page.is_published ? "success" : "muted"}>
+                            {page.is_published ? "Publicada" : "Borrador"}
+                          </Badge>
+                        </div>
+                      </article>
+                    );
+                  })()
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
-
-        <Card className="border-brand/30 xl:sticky xl:top-6 xl:h-fit">
-          <CardHeader>
-            <CardTitle className="text-lg">Nuevo archivo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form action={createWikiPageAction} className="grid gap-3">
-              <input
-                name="title"
-                required
-                placeholder="Título de la página"
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-              />
-              <select name="area" required className="h-10 rounded-md border border-input bg-background px-3 text-sm">
-                <option value="">Selecciona área</option>
-                {AREA_CONFIG.map((area) => (
-                  <option key={area.key} value={area.key}>
-                    {area.label}
-                  </option>
-                ))}
-              </select>
-              <select name="subcategory" className="h-10 rounded-md border border-input bg-background px-3 text-sm">
-                <option value="">Sin subcarpeta</option>
-                {AREA_CONFIG.flatMap((area) =>
-                  area.subfolders.map((sub) => (
-                    <option key={`${area.key}-${sub}`} value={sub}>
-                      {area.label} / {prettifyFolderName(sub)}
-                    </option>
-                  ))
-                )}
-              </select>
-              <textarea
-                name="content"
-                required
-                placeholder="Contenido inicial"
-                className="min-h-56 rounded-md border border-input bg-background p-3 text-sm"
-              />
-              <label className="inline-flex items-center gap-2 text-sm">
-                <input type="checkbox" name="isPublished" defaultChecked className="h-4 w-4" />
-                Publicar ahora
-              </label>
-              <button
-                type="submit"
-                className="h-10 rounded-md bg-brand px-4 text-sm font-medium text-brand-foreground"
-              >
-                Crear archivo
-              </button>
-            </form>
-            <div className="mt-3 rounded-md border border-border/70 bg-secondary/20 p-3 text-xs text-muted-foreground">
-              Consejo: usa estructura corta, por ejemplo <span className="font-mono">marketing/branding</span>.
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </div>
-  );
-}
-
-function TemplateCard({ title, body }: { title: string; body: string }) {
-  return (
-    <article className="rounded-md border border-border/70 bg-secondary/20 p-3">
-      <p className="inline-flex items-center gap-2 text-sm font-medium">
-        <BookOpen className="h-4 w-4 text-muted-foreground" />
-        {title}
-      </p>
-      <p className="mt-1 text-xs text-muted-foreground">{body}</p>
-    </article>
   );
 }

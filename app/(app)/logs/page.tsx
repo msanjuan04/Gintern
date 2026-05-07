@@ -15,15 +15,21 @@ export const metadata = {
 export default async function LogsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ modulo?: string }>;
+  searchParams: Promise<{ modulo?: string; limit?: string }>;
 }) {
   const resolvedSearchParams = await searchParams;
   const logs = await listActivityLogs();
   const selectedModule = (resolvedSearchParams.modulo ?? "all").toLowerCase();
+  const PAGE_SIZE = 5;
+  const requestedLimit = Number(resolvedSearchParams.limit ?? PAGE_SIZE);
+  const safeLimit =
+    Number.isFinite(requestedLimit) && requestedLimit > 0 ? requestedLimit : PAGE_SIZE;
   const filteredLogs =
     selectedModule === "all"
       ? logs
       : logs.filter((log) => log.module.toLowerCase() === selectedModule);
+  const visibleLogs = filteredLogs.slice(0, safeLimit);
+  const hasMore = filteredLogs.length > safeLimit;
 
   const moduleCount = new Map<string, number>();
   for (const log of logs) {
@@ -53,7 +59,7 @@ export default async function LogsPage({
       <div className="grid gap-4 md:grid-cols-3">
         <MetricCard
           label={selectedModule === "all" ? "Eventos en vista" : "Coinciden filtro"}
-          value={String(filteredLogs.length)}
+          value={String(visibleLogs.length)}
         />
         <MetricCard label="Total cargado" value={String(logs.length)} />
         <MetricCard label="Módulo más activo" value={topModuleLabel} />
@@ -114,7 +120,7 @@ export default async function LogsPage({
             </div>
           ) : (
             <div className="relative space-y-3 pl-4 before:absolute before:bottom-0 before:left-1.5 before:top-0 before:w-px before:bg-border">
-              {filteredLogs.map((log) => {
+              {visibleLogs.map((log) => {
                 const { headline, subline, href } = describeActivityLog(log);
                 const extras = formatMetadataPreview(log.metadata);
                 return (
@@ -164,6 +170,35 @@ export default async function LogsPage({
               })}
             </div>
           )}
+          {filteredLogs.length > PAGE_SIZE ? (
+            <div className="mt-4 flex justify-center gap-2">
+              {hasMore ? (
+                <Link
+                  href={
+                    selectedModule === "all"
+                      ? `/logs?limit=${safeLimit + PAGE_SIZE}`
+                      : `/logs?modulo=${encodeURIComponent(selectedModule)}&limit=${
+                          safeLimit + PAGE_SIZE
+                        }`
+                  }
+                  className="h-9 rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-secondary"
+                >
+                  Ver más
+                </Link>
+              ) : (
+                <Link
+                  href={
+                    selectedModule === "all"
+                      ? "/logs"
+                      : `/logs?modulo=${encodeURIComponent(selectedModule)}`
+                  }
+                  className="h-9 rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-secondary"
+                >
+                  Ver menos
+                </Link>
+              )}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 export type CredentialListItem = {
@@ -12,11 +13,18 @@ export type CredentialListItem = {
   environment: "prod" | "staging" | "dev" | "other";
   secret_hint: string | null;
   vault_secret_ref: string | null;
+  has_secret: boolean;
   rotation_due_on: string | null;
   owner_name: string | null;
 };
 
+export async function isBovedaUnlocked() {
+  const cookieStore = await cookies();
+  return cookieStore.get("boveda_unlocked")?.value === "1";
+}
+
 export async function listCredentials(): Promise<CredentialListItem[]> {
+  const unlocked = await isBovedaUnlocked();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("credentials")
@@ -41,7 +49,8 @@ export async function listCredentials(): Promise<CredentialListItem[]> {
       client_name: client?.nombre ?? null,
       environment: row.environment,
       secret_hint: row.secret_hint,
-      vault_secret_ref: row.vault_secret_ref,
+      vault_secret_ref: unlocked ? row.vault_secret_ref : null,
+      has_secret: Boolean(row.vault_secret_ref),
       rotation_due_on: row.rotation_due_on,
       owner_name: owner?.full_name || owner?.email || null,
     };

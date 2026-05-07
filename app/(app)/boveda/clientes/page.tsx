@@ -1,17 +1,19 @@
-import { listCredentials } from "@/lib/boveda/queries";
+import { isBovedaUnlocked, listCredentials } from "@/lib/boveda/queries";
 import { listClients } from "@/lib/clients/queries";
 
 import { BovedaNav } from "../ui/boveda-nav";
 import { BovedaClientesList } from "../ui/boveda-clientes-list";
+import { BovedaUnlockControls } from "../ui/boveda-unlock-controls";
 
 export const metadata = {
   title: "Contraseñas de clientes · GNERAI",
 };
 
 export default async function BovedaClientesPage() {
-  const [credentials, clients] = await Promise.all([
+  const [credentials, clients, unlocked] = await Promise.all([
     listCredentials(),
     listClients({ includeInactive: true }),
+    isBovedaUnlocked(),
   ]);
   const clientCredentials = credentials.filter((item) => item.scope === "client").map((item) => ({
     id: item.id,
@@ -22,6 +24,7 @@ export default async function BovedaClientesPage() {
     environment: item.environment,
     secret_hint: item.secret_hint,
     vault_secret_ref: item.vault_secret_ref,
+    has_secret: item.has_secret,
     rotation_due_on: item.rotation_due_on,
     owner_name: item.owner_name,
   }));
@@ -38,6 +41,7 @@ export default async function BovedaClientesPage() {
         <p className="text-sm text-muted-foreground">
           Vista por cliente para asociar y revisar accesos de Supabase, Meta, Ads, etc.
         </p>
+        <BovedaUnlockControls unlocked={unlocked} />
         <BovedaNav active="clientes" />
       </header>
 

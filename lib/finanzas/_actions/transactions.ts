@@ -102,3 +102,118 @@ export async function createTransactionAction(formData: FormData) {
   revalidatePath("/finanzas");
 }
 
+export async function updateTransactionAction(formData: FormData) {
+  const transactionId = String(formData.get("transactionId") ?? "");
+  if (!transactionId) throw new Error("Falta el identificador de la transacción.");
+
+  const parsed = createTransactionSchema.safeParse({
+    concept: String(formData.get("concept") ?? ""),
+    type: String(formData.get("type") ?? ""),
+    category: String(formData.get("category") ?? ""),
+    amountNet: String(formData.get("amountNet") ?? "0"),
+    taxAmount: String(formData.get("taxAmount") ?? "0"),
+    amountTotal: String(formData.get("amountTotal") ?? "0"),
+    issuedAt: String(formData.get("issuedAt") ?? ""),
+    paidAt: String(formData.get("paidAt") ?? "") || undefined,
+    clientId: String(formData.get("clientId") ?? "") || undefined,
+    projectId: String(formData.get("projectId") ?? "") || undefined,
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado.");
+
+  const { error } = await supabase
+    .from("transactions")
+    .update({
+      concept: parsed.data.concept,
+      type: parsed.data.type,
+      category: parsed.data.category,
+      amount_net: parsed.data.amountNet,
+      tax_amount: parsed.data.taxAmount,
+      amount_total: parsed.data.amountTotal,
+      issued_at: parsed.data.issuedAt,
+      paid_at: parsed.data.paidAt || null,
+      client_id: parsed.data.clientId || null,
+      project_id: parsed.data.projectId || null,
+    })
+    .eq("id", transactionId);
+
+  if (error) throw new Error(error.message);
+
+  await createActivityLog({
+    module: "finanzas",
+    action: "transaction_updated",
+    entityType: "transaction",
+    entityId: transactionId,
+    metadata: {
+      concept: parsed.data.concept,
+      type: parsed.data.type,
+      category: parsed.data.category,
+      amount_net: parsed.data.amountNet,
+    },
+  });
+
+  revalidatePath("/finanzas");
+}
+
+export async function duplicateTransactionAction(formData: FormData) {
+  const parsed = createTransactionSchema.safeParse({
+    concept: String(formData.get("concept") ?? ""),
+    type: String(formData.get("type") ?? ""),
+    category: String(formData.get("category") ?? ""),
+    amountNet: String(formData.get("amountNet") ?? "0"),
+    taxAmount: String(formData.get("taxAmount") ?? "0"),
+    amountTotal: String(formData.get("amountTotal") ?? "0"),
+    issuedAt: String(formData.get("issuedAt") ?? ""),
+    paidAt: String(formData.get("paidAt") ?? "") || undefined,
+    clientId: String(formData.get("clientId") ?? "") || undefined,
+    projectId: String(formData.get("projectId") ?? "") || undefined,
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado.");
+
+  const { data: inserted, error } = await supabase
+    .from("transactions")
+    .insert({
+      concept: parsed.data.concept,
+      type: parsed.data.type,
+      category: parsed.data.category,
+      amount_net: parsed.data.amountNet,
+      tax_amount: parsed.data.taxAmount,
+      amount_total: parsed.data.amountTotal,
+      issued_at: parsed.data.issuedAt,
+      paid_at: parsed.data.paidAt || null,
+      client_id: parsed.data.clientId || null,
+      project_id: parsed.data.projectId || null,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  await createActivityLog({
+    module: "finanzas",
+    action: "transaction_duplicated",
+    entityType: "transaction",
+    entityId: inserted.id as string,
+    metadata: {
+      concept: parsed.data.concept,
+      type: parsed.data.type,
+      category: parsed.data.category,
+      amount_net: parsed.data.amountNet,
+    },
+  });
+
+  revalidatePath("/finanzas");
+}
+

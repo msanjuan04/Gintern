@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 
-import { Clock3, Plus, Search, SlidersHorizontal } from "lucide-react";
+import { Plus, Search, SlidersHorizontal } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,6 @@ import {
   addTicketAttachmentAction,
   deleteTicketAction,
   moveTicketStatusAction,
-  stopTicketTimerAction,
-  startTicketTimerAction,
 } from "@/lib/tickets/actions";
 import type { TicketBoardItem } from "@/lib/tickets/queries";
 
@@ -47,6 +45,12 @@ function priorityBadge(priority: TicketBoardItem["priority"]) {
   if (priority === "fire") return <Badge variant="destructive">Fuego</Badge>;
   if (priority === "high") return <Badge variant="warning">Alta</Badge>;
   return <Badge variant="secondary">Normal</Badge>;
+}
+
+function priorityCardBorder(priority: TicketBoardItem["priority"]) {
+  if (priority === "fire") return "border-l-4 border-l-destructive";
+  if (priority === "high") return "border-l-4 border-l-amber-500";
+  return "border-l-4 border-l-border";
 }
 
 function getDueState(dueDate: string | null) {
@@ -83,7 +87,7 @@ export function TicketsBoard({
   >("all");
   const [assigneeFilter, setAssigneeFilter] = useState<"all" | string>("all");
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
   const [ownershipMode, setOwnershipMode] = useState<"team" | "assigned-to-me">(
     "team"
   );
@@ -344,18 +348,18 @@ export function TicketsBoard({
               No hay tickets que coincidan con la búsqueda.
             </p>
           ) : viewMode === "cards" ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {filteredTickets.map((ticket) => (
                 <article
                   key={ticket.id}
-                  className="rounded-xl border border-border/70 bg-card/40 p-4 shadow-sm transition-colors hover:border-brand/40"
+                  className={`rounded-lg border border-border/70 bg-card/40 p-3 shadow-sm transition-colors hover:border-brand/40 ${priorityCardBorder(ticket.priority)}`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 space-y-1">
+                    <div className="min-w-0 space-y-0.5">
                       <p className="text-[11px] font-mono text-muted-foreground">
                         {ticket.code ?? "TK-pendiente"}
                       </p>
-                      <p className="truncate text-base font-semibold">{ticket.title}</p>
+                      <p className="truncate text-sm font-semibold">{ticket.title}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {priorityBadge(ticket.priority)}
@@ -371,116 +375,76 @@ export function TicketsBoard({
                     </div>
                   </div>
 
-                  <div className="mt-3 grid gap-2 rounded-lg bg-muted/40 p-3 text-xs md:grid-cols-2 xl:grid-cols-4">
-                    <div>
-                      <p className="text-[11px] text-muted-foreground">Cliente</p>
-                      <p className="font-medium text-foreground">{ticket.client_name ?? "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-muted-foreground">Responsable</p>
-                      <p className="font-medium text-foreground">
-                        {ticket.assignee_name ?? "Sin asignar"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-muted-foreground">Fecha límite</p>
-                      <p className="font-medium text-foreground">{ticket.due_date ?? "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-muted-foreground">Tiempo real</p>
-                      <p className="flex items-center gap-1 font-medium text-foreground">
-                        <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
-                        {Math.floor(ticket.spent_minutes / 60)}h
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-muted-foreground">Actividad</p>
-                      <p className="font-medium text-foreground">{ticket.activity_count}</p>
-                    </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <Badge variant="outline">Cliente: {ticket.client_name ?? "—"}</Badge>
+                    <Badge variant="outline">
+                      Responsable: {ticket.assignee_name ?? "Sin asignar"}
+                    </Badge>
+                    <Badge variant="outline">Límite: {ticket.due_date ?? "—"}</Badge>
+                    <Badge variant="outline">
+                      Tiempo: {Math.floor(ticket.spent_minutes / 60)}h
+                    </Badge>
+                    <Badge variant="outline">Actividad: {ticket.activity_count}</Badge>
                   </div>
 
                   {ticket.description && (
-                    <div className="mt-3 rounded-lg border border-border/60 bg-background p-3">
-                      <p className="text-[11px] text-muted-foreground">Descripción</p>
-                      <p className="mt-1 text-sm leading-relaxed text-foreground/90">
-                        {ticket.description}
-                      </p>
-                    </div>
+                    <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                      {ticket.description}
+                    </p>
                   )}
 
-                  {ticket.cc_members.length > 0 && (
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                      <span className="text-muted-foreground">En copia:</span>
-                      {ticket.cc_members.map((member) => (
-                        <Badge key={member.id} variant="outline">
-                          {member.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-
-                  {ticket.dependencies.length > 0 && (
-                    <div className="mt-3 rounded-lg border border-border/60 bg-background p-3">
-                      <p className="mb-2 text-[11px] text-muted-foreground">Dependencias</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {ticket.dependencies.map((dependency) => (
-                          <Badge key={dependency.id} variant="outline">
-                            {(dependency.code ?? "TK-?") + " · " + dependency.title}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {ticket.attachments.length > 0 && (
-                    <div className="mt-3 rounded-lg border border-border/60 bg-background p-3">
-                      <p className="mb-2 text-[11px] text-muted-foreground">Adjuntos</p>
-                      <div className="space-y-1.5">
-                        {ticket.attachments.map((attachment) => (
-                          <a
-                            key={attachment.id}
-                            href={attachment.external_url || attachment.file_url || undefined}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block truncate text-xs text-brand hover:underline"
-                          >
-                            {attachment.label ||
-                              attachment.external_url ||
-                              attachment.file_path ||
-                              "Adjunto"}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mt-3 flex flex-wrap gap-2 border-t border-border/60 pt-3">
+                  <div className="mt-2 flex flex-wrap gap-2 border-t border-border/60 pt-2">
+                    {ticket.status !== "in_progress" && ticket.status !== "done" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          startTransition(async () => {
+                            await moveTicketStatusAction(ticket.id, "in_progress");
+                          })
+                        }
+                      >
+                        Empezar
+                      </Button>
+                    )}
+                    {ticket.status !== "blocked" && ticket.status !== "done" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          startTransition(async () => {
+                            await moveTicketStatusAction(ticket.id, "blocked");
+                          })
+                        }
+                      >
+                        Bloquear
+                      </Button>
+                    )}
                     {ticket.status !== "done" && (
-                      ticket.has_running_timer ? (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            startTransition(async () => {
-                              await stopTicketTimerAction(ticket.id);
-                            })
-                          }
-                        >
-                          Parar cronómetro
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            startTransition(async () => {
-                              await startTicketTimerAction(ticket.id);
-                            })
-                          }
-                        >
-                          Iniciar cronómetro
-                        </Button>
-                      )
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          startTransition(async () => {
+                            await moveTicketStatusAction(ticket.id, "done");
+                          })
+                        }
+                      >
+                        Cerrar
+                      </Button>
+                    )}
+                    {ticket.status === "done" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          startTransition(async () => {
+                            await moveTicketStatusAction(ticket.id, "backlog");
+                          })
+                        }
+                      >
+                        Reabrir
+                      </Button>
                     )}
 
                     <select
@@ -516,75 +480,102 @@ export function TicketsBoard({
                     </Button>
                   </div>
 
-                  <form
-                    action={(formData) => {
-                      startTransition(async () => {
-                        await addTicketAttachmentAction(ticket.id, formData);
-                      });
-                    }}
-                    className="mt-3 grid gap-2 rounded-lg border border-border/60 bg-background p-3 md:grid-cols-3"
-                  >
-                    <Input name="label" placeholder="Etiqueta adjunto" className="h-8 text-xs" />
-                    <Input name="externalUrl" placeholder="https://..." className="h-8 text-xs" />
-                    <div className="flex items-center justify-center">
-                      <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary">
-                        Seleccionar archivo
-                        <input name="file" type="file" className="hidden" />
-                      </label>
-                    </div>
-                    <div className="md:col-span-3">
-                      <Button size="sm" variant="ghost" type="submit">
-                        Adjuntar archivo/link
-                      </Button>
-                    </div>
-                  </form>
-
-                  <div className="mt-3 rounded-lg border border-border/60 bg-background p-3">
-                    <p className="mb-2 text-[11px] text-muted-foreground">Comentarios</p>
-                    {ticket.comments.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">
-                        Aún no hay comentarios en este ticket.
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {ticket.comments.slice(0, 3).map((comment) => (
-                          <div key={comment.id} className="rounded-md border border-border/60 p-2">
-                            <p className="text-[11px] text-muted-foreground">
-                              {comment.author_name} · {new Date(comment.created_at).toLocaleString()}
-                            </p>
-                            <p className="mt-1 text-xs">{comment.body}</p>
-                            {comment.mentions.length > 0 && (
-                              <div className="mt-2 flex flex-wrap items-center gap-1">
-                                <span className="text-[10px] text-muted-foreground">Menciones:</span>
-                                {comment.mentions.map((mention) => (
-                                  <Badge key={`${comment.id}-${mention.id}`} variant="outline">
-                                    @{mention.name}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+                  <details className="mt-2 rounded-md border border-border/60 bg-background p-2">
+                    <summary className="cursor-pointer text-xs text-muted-foreground">
+                      Detalle ({ticket.comments.length} comentarios, {ticket.attachments.length} adjuntos,{" "}
+                      {ticket.dependencies.length} dependencias)
+                    </summary>
+                    {ticket.cc_members.length > 0 && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                        <span className="text-muted-foreground">En copia:</span>
+                        {ticket.cc_members.map((member) => (
+                          <Badge key={member.id} variant="outline">
+                            {member.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    {ticket.dependencies.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {ticket.dependencies.map((dependency) => (
+                          <Badge key={dependency.id} variant="outline">
+                            {(dependency.code ?? "TK-?") + " · " + dependency.title}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    {ticket.attachments.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {ticket.attachments.map((attachment) => (
+                          <a
+                            key={attachment.id}
+                            href={attachment.external_url || attachment.file_url || undefined}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block truncate text-xs text-brand hover:underline"
+                          >
+                            {attachment.label ||
+                              attachment.external_url ||
+                              attachment.file_path ||
+                              "Adjunto"}
+                          </a>
                         ))}
                       </div>
                     )}
                     <form
                       action={(formData) => {
                         startTransition(async () => {
-                          await addTicketCommentAction(ticket.id, formData);
+                          await addTicketAttachmentAction(ticket.id, formData);
                         });
                       }}
-                      className="mt-2 flex gap-2"
+                      className="mt-2 grid gap-2 md:grid-cols-3"
                     >
-                      <Input
-                        name="body"
-                        placeholder="Escribe un comentario... (usa @nombre o @email)"
-                        className="h-8 text-xs"
-                      />
-                      <Button size="sm" type="submit">
-                        Comentar
-                      </Button>
+                      <Input name="label" placeholder="Etiqueta adjunto" className="h-8 text-xs" />
+                      <Input name="externalUrl" placeholder="https://..." className="h-8 text-xs" />
+                      <div className="flex items-center justify-center">
+                        <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary">
+                          Seleccionar archivo
+                          <input name="file" type="file" className="hidden" />
+                        </label>
+                      </div>
+                      <div className="md:col-span-3">
+                        <Button size="sm" variant="ghost" type="submit">
+                          Adjuntar archivo/link
+                        </Button>
+                      </div>
                     </form>
-                  </div>
+                    <div className="mt-2">
+                      {ticket.comments.length > 0 && (
+                        <div className="space-y-2">
+                          {ticket.comments.slice(0, 3).map((comment) => (
+                            <div key={comment.id} className="rounded-md border border-border/60 p-2">
+                              <p className="text-[11px] text-muted-foreground">
+                                {comment.author_name} · {new Date(comment.created_at).toLocaleString()}
+                              </p>
+                              <p className="mt-1 text-xs">{comment.body}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <form
+                        action={(formData) => {
+                          startTransition(async () => {
+                            await addTicketCommentAction(ticket.id, formData);
+                          });
+                        }}
+                        className="mt-2 flex gap-2"
+                      >
+                        <Input
+                          name="body"
+                          placeholder="Escribe un comentario... (usa @nombre o @email)"
+                          className="h-8 text-xs"
+                        />
+                        <Button size="sm" type="submit">
+                          Comentar
+                        </Button>
+                      </form>
+                    </div>
+                  </details>
                 </article>
               ))}
             </div>
@@ -599,6 +590,8 @@ export function TicketsBoard({
                     <TableHead>Prioridad</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Límite</TableHead>
+                    <TableHead>Tiempo</TableHead>
+                    <TableHead>Actividad</TableHead>
                     <TableHead>Alertas</TableHead>
                     <TableHead>Acciones</TableHead>
                   </TableRow>
@@ -628,6 +621,8 @@ export function TicketsBoard({
                         </Badge>
                       </TableCell>
                       <TableCell>{ticket.due_date ?? "—"}</TableCell>
+                      <TableCell>{Math.floor(ticket.spent_minutes / 60)}h</TableCell>
+                      <TableCell>{ticket.activity_count}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {getDueState(ticket.due_date) === "overdue" && (
@@ -650,11 +645,11 @@ export function TicketsBoard({
                             variant="outline"
                             onClick={() =>
                               startTransition(async () => {
-                                await startTicketTimerAction(ticket.id);
+                                await moveTicketStatusAction(ticket.id, "in_progress");
                               })
                             }
                           >
-                            Cronómetro
+                            Empezar
                           </Button>
                           <Button
                             size="sm"

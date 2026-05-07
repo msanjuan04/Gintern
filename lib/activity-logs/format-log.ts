@@ -7,7 +7,7 @@ export const MODULE_LABEL: Record<string, string> = {
   finanzas: "Finanzas",
   organizacion: "Organización",
   boveda: "Contraseñas",
-  wiki: "Wiki",
+  wiki: "Drive",
   propuestas: "Propuestas",
   archivos: "Archivos",
 };

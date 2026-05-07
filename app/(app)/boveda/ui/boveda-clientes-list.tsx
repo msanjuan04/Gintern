@@ -23,6 +23,7 @@ type CredentialRow = {
   environment: "prod" | "staging" | "dev" | "other";
   secret_hint: string | null;
   vault_secret_ref: string | null;
+  has_secret: boolean;
   rotation_due_on: string | null;
   owner_name: string | null;
 };
@@ -35,7 +36,7 @@ export function BovedaClientesList({
   credentials: CredentialRow[];
 }) {
   const [query, setQuery] = useState("");
-  const [openedClientId, setOpenedClientId] = useState<string | null>(clients[0]?.id ?? null);
+  const [openedClientId, setOpenedClientId] = useState<string | null>(null);
   const today = new Date().toISOString().slice(0, 10);
 
   const byClientId = useMemo(() => {
@@ -126,28 +127,51 @@ export function BovedaClientesList({
                           rows.map((item) => (
                             <article
                               key={item.id}
-                              className="grid gap-1 rounded-md border border-border/60 bg-background px-3 py-2 md:grid-cols-[1fr_auto]"
+                              className="rounded-md border border-border/60 bg-background px-3 py-2"
                             >
-                              <div className="min-w-0">
-                                <p className="truncate text-xs font-medium">{item.service}</p>
-                                <p className="truncate text-xs text-muted-foreground">
-                                  {item.account_identifier} · {item.owner_name ?? "Equipo"}
-                                </p>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-medium">{item.service}</p>
+                                  <p className="text-[11px] text-muted-foreground">Credencial de cliente</p>
+                                </div>
+                                <div className="flex flex-wrap items-center justify-end gap-1">
+                                  <Badge variant="outline" className="text-[10px]">
+                                    {formatEnvironment(item.environment)}
+                                  </Badge>
+                                  <Badge
+                                    variant={
+                                      item.rotation_due_on && item.rotation_due_on < today
+                                        ? "destructive"
+                                        : "secondary"
+                                    }
+                                    className="text-[10px]"
+                                  >
+                                    {item.rotation_due_on ? item.rotation_due_on : "Sin rotación"}
+                                  </Badge>
+                                </div>
                               </div>
-                              <div className="flex flex-wrap items-center justify-end gap-1">
-                                <Badge variant="outline" className="text-[10px]">
-                                  {formatEnvironment(item.environment)}
-                                </Badge>
-                                <Badge
-                                  variant={
-                                    item.rotation_due_on && item.rotation_due_on < today
-                                      ? "destructive"
-                                      : "secondary"
-                                  }
-                                  className="text-[10px]"
-                                >
-                                  {item.rotation_due_on ? item.rotation_due_on : "Sin rotación"}
-                                </Badge>
+                              <div className="mt-2 grid gap-2 text-xs md:grid-cols-2">
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Cuenta</p>
+                                  <p className="truncate font-medium">{item.account_identifier}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Owner</p>
+                                  <p className="truncate font-medium">{item.owner_name ?? "Equipo"}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Pista</p>
+                                  <p className="truncate font-medium">{item.secret_hint ?? "Sin pista"}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                    Secreto
+                                  </p>
+                                  <p className="truncate font-mono">
+                                    {item.vault_secret_ref ??
+                                      (item.has_secret ? "•••••••• (bloqueada)" : "Sin secreto")}
+                                  </p>
+                                </div>
                               </div>
                             </article>
                           ))
@@ -189,6 +213,12 @@ export function BovedaClientesList({
                             className="h-8 rounded-md border border-input bg-background px-2 text-xs"
                           />
                         </div>
+                        <input
+                          name="password"
+                          type="password"
+                          placeholder="Contraseña (opcional)"
+                          className="h-8 rounded-md border border-input bg-background px-2.5 text-xs"
+                        />
                         <input
                           name="secretHint"
                           placeholder="Pista segura"

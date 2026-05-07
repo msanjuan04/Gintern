@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   Bar,
   BarChart,
@@ -18,12 +18,22 @@ import {
 } from "recharts";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  duplicateTransactionAction,
+  updateTransactionAction,
+} from "@/lib/finanzas/_actions/transactions";
 import { fmtMoney } from "@/lib/utils";
-import type { FinanceDataBundle, TransactionRow } from "@/lib/finanzas/_services/queries";
+import type {
+  FinanceDataBundle,
+  TransactionCategory,
+  TransactionRow,
+} from "@/lib/finanzas/_services/queries";
 
 import { TransactionModal } from "./transaction-modal";
 
@@ -142,7 +152,7 @@ export function FinanzasClient({
             </CardContent>
           </Card>
 
-          <FinanceTable rows={initialData.latest} title="Ultimos Movimientos" />
+          <FinanceTable rows={initialData.latest} title="Ultimos Movimientos" clients={clients} />
         </TabsContent>
 
         <TabsContent value="ingresos" className="space-y-4">
@@ -152,7 +162,7 @@ export function FinanzasClient({
             clients={clients}
             onExport={() => downloadCsv("ingresos.csv", filteredIncomes)}
           />
-          <FinanceTable rows={filteredIncomes} title="Ingresos" />
+          <FinanceTable rows={filteredIncomes} title="Ingresos" progressive clients={clients} />
         </TabsContent>
 
         <TabsContent value="gastos" className="space-y-4">
@@ -162,7 +172,7 @@ export function FinanzasClient({
             clients={clients}
             onExport={() => downloadCsv("gastos.csv", filteredExpenses)}
           />
-          <FinanceTable rows={filteredExpenses} title="Gastos" />
+          <FinanceTable rows={filteredExpenses} title="Gastos" progressive clients={clients} />
         </TabsContent>
 
         <TabsContent value="socios" className="space-y-6">
@@ -403,7 +413,22 @@ function FiltersRow({
   );
 }
 
-function FinanceTable({ rows, title }: { rows: TransactionRow[]; title: string }) {
+function FinanceTable({
+  rows,
+  title,
+  progressive = false,
+  clients,
+}: {
+  rows: TransactionRow[];
+  title: string;
+  progressive?: boolean;
+  clients: Array<{ id: string; nombre: string | null }>;
+}) {
+  const PAGE_SIZE = 15;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const visibleRows = progressive ? rows.slice(0, visibleCount) : rows;
+  const hasMore = progressive && visibleRows.length < rows.length;
+
   return (
     <Card className="rounded-2xl">
       <CardHeader>
@@ -418,10 +443,11 @@ function FinanceTable({ rows, title }: { rows: TransactionRow[]; title: string }
               <TableHead>Concepto</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead className="text-right">Base Imponible</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((row) => (
+            {visibleRows.map((row) => (
               <TableRow key={row.id}>
                 <TableCell>{row.issued_at}</TableCell>
                 <TableCell>
@@ -434,12 +460,226 @@ function FinanceTable({ rows, title }: { rows: TransactionRow[]; title: string }
                   <Badge variant="outline">{CATEGORY_LABEL[row.category] ?? row.category}</Badge>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{fmtMoney(row.amount_net)}</TableCell>
+                <TableCell className="text-right">
+                  <TransactionRowActions row={row} clients={clients} />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+        {progressive && rows.length > PAGE_SIZE ? (
+          <div className="mt-4 flex justify-center gap-2">
+            {hasMore ? (
+              <button
+                type="button"
+                onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                className="h-9 rounded-md border border-border px-4 text-sm font-medium hover:bg-secondary"
+              >
+                Ver más
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setVisibleCount(PAGE_SIZE)}
+                className="h-9 rounded-md border border-border px-4 text-sm font-medium hover:bg-secondary"
+              >
+                Ver menos
+              </button>
+            )}
+          </div>
+        ) : null}
       </CardContent>
     </Card>
+  );
+}
+
+function TransactionRowActions({
+  row,
+  clients,
+}: {
+  row: TransactionRow;
+  clients: Array<{ id: string; nombre: string | null }>;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [mode, setMode] = useState<"edit" | "duplicate" | null>(null);
+  const [draft, setDraft] = useState({
+    concept: row.concept,
+    type: row.type,
+    category: row.category,
+    amountNet: String(row.amount_net),
+    taxAmount: String(row.tax_amount),
+    amountTotal: String(row.amount_total),
+    issuedAt: row.issued_at,
+    paidAt: row.paid_at ?? "",
+    clientId: row.client_id ?? "",
+  });
+
+  const categories =
+    draft.type === "income"
+      ? [
+          { value: "service", label: "Servicio" },
+          { value: "uncategorized", label: "Sin clasificar" },
+          { value: "internal_movement", label: "Movimiento interno" },
+        ]
+      : [
+          { value: "saas", label: "SaaS" },
+          { value: "structural", label: "Estructural" },
+          { value: "variable", label: "Variable" },
+          { value: "internal_movement", label: "Movimiento interno" },
+        ];
+
+  function open(nextMode: "edit" | "duplicate") {
+    setDraft({
+      concept: row.concept,
+      type: row.type,
+      category: row.category,
+      amountNet: String(row.amount_net),
+      taxAmount: String(row.tax_amount),
+      amountTotal: String(row.amount_total),
+      issuedAt: row.issued_at,
+      paidAt: row.paid_at ?? "",
+      clientId: row.client_id ?? "",
+    });
+    setMode(nextMode);
+  }
+
+  return (
+    <>
+      <div className="inline-flex items-center gap-2">
+        <Button size="sm" variant="outline" onClick={() => open("edit")}>
+          Editar
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => open("duplicate")}>
+          Duplicar
+        </Button>
+      </div>
+      <Dialog open={mode !== null} onOpenChange={(openState) => !openState && setMode(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{mode === "edit" ? "Editar movimiento" : "Duplicar movimiento"}</DialogTitle>
+          </DialogHeader>
+          <form
+            className="grid gap-3 md:grid-cols-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const formData = new FormData();
+              formData.set("concept", draft.concept);
+              formData.set("type", draft.type);
+              formData.set("category", draft.category);
+              formData.set("amountNet", draft.amountNet);
+              formData.set("taxAmount", draft.taxAmount);
+              formData.set("amountTotal", draft.amountTotal);
+              formData.set("issuedAt", draft.issuedAt);
+              formData.set("paidAt", draft.paidAt);
+              formData.set("clientId", draft.clientId);
+              if (mode === "edit") formData.set("transactionId", row.id);
+
+              startTransition(async () => {
+                if (mode === "edit") {
+                  await updateTransactionAction(formData);
+                } else if (mode === "duplicate") {
+                  await duplicateTransactionAction(formData);
+                }
+                setMode(null);
+              });
+            }}
+          >
+            <Input
+              value={draft.concept}
+              onChange={(e) => setDraft((prev) => ({ ...prev, concept: e.target.value }))}
+              placeholder="Concepto"
+              className="md:col-span-2"
+              required
+            />
+            <select
+              value={draft.type}
+              onChange={(e) =>
+                setDraft((prev) => ({
+                  ...prev,
+                  type: e.target.value as "income" | "expense",
+                  category: e.target.value === "income" ? "service" : "saas",
+                }))
+              }
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="expense">Gasto</option>
+              <option value="income">Ingreso</option>
+            </select>
+            <select
+              value={draft.category}
+              onChange={(e) =>
+                setDraft((prev) => ({
+                  ...prev,
+                  category: e.target.value as TransactionCategory,
+                }))
+              }
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {categories.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+            <Input
+              type="number"
+              step="0.01"
+              value={draft.amountNet}
+              onChange={(e) => setDraft((prev) => ({ ...prev, amountNet: e.target.value }))}
+              placeholder="Base imponible"
+              required
+            />
+            <Input
+              type="number"
+              step="0.01"
+              value={draft.taxAmount}
+              onChange={(e) => setDraft((prev) => ({ ...prev, taxAmount: e.target.value }))}
+              placeholder="Impuestos"
+              required
+            />
+            <Input
+              type="number"
+              step="0.01"
+              value={draft.amountTotal}
+              onChange={(e) => setDraft((prev) => ({ ...prev, amountTotal: e.target.value }))}
+              placeholder="Total"
+              required
+            />
+            <Input
+              type="date"
+              value={draft.issuedAt}
+              onChange={(e) => setDraft((prev) => ({ ...prev, issuedAt: e.target.value }))}
+              required
+            />
+            <Input
+              type="date"
+              value={draft.paidAt}
+              onChange={(e) => setDraft((prev) => ({ ...prev, paidAt: e.target.value }))}
+            />
+            <select
+              value={draft.clientId}
+              onChange={(e) => setDraft((prev) => ({ ...prev, clientId: e.target.value }))}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm md:col-span-2"
+            >
+              <option value="">Sin cliente</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre ?? "Sin nombre"}
+                </option>
+              ))}
+            </select>
+            <div className="md:col-span-2 flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setMode(null)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={pending}>
+                {pending ? "Guardando..." : mode === "edit" ? "Guardar cambios" : "Crear duplicado"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
