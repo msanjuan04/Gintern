@@ -13,7 +13,7 @@ import { createClientAction } from "@/lib/clients/actions";
 import { ClientForm } from "../client-form";
 
 export const metadata = {
-  title: "Nuevo cliente · GNERAI Finance",
+  title: "Nuevo cliente · GNERAI OS",
 };
 
 export default function NuevoClientePage() {

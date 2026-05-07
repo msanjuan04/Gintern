@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   BookOpen,
   BriefcaseBusiness,
@@ -12,10 +13,14 @@ import {
   Gauge,
   History,
   KanbanSquare,
+  Moon,
+  Sun,
   Users,
 } from "lucide-react";
 
 import type { Role } from "@/lib/auth/allowlist";
+import { GneraiLogo } from "@/components/gnerai-logo";
+import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "./logout-button";
 
@@ -47,41 +52,78 @@ function navForRole(role: Role) {
   return NAV;
 }
 
+function ThemeToggle({ compact = false }: { compact?: boolean }) {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    const isDark = document.documentElement.classList.contains("dark");
+    setTheme(isDark ? "dark" : "light");
+  }, []);
+
+  function toggle() {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.classList.toggle("dark", next === "dark");
+    try {
+      localStorage.setItem("gnerai-theme", next);
+    } catch {
+      /* noop */
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
+      className={cn(
+        "relative z-10 inline-flex items-center justify-center rounded-md border border-border/70 bg-background text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+        compact ? "h-8 w-8" : "h-9 w-9"
+      )}
+    >
+      {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </button>
+  );
+}
+
 export function Sidebar({
   role,
   userEmail,
-  userInitials,
+  avatarUrl,
+  nombre,
+  apellidos,
 }: {
   role: Role;
   userEmail: string;
-  userInitials: string;
+  avatarUrl: string | null;
+  nombre: string | null;
+  apellidos: string | null;
 }) {
   const pathname = usePathname();
   const items = navForRole(role);
   const homeHref = "/dashboard";
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-border/70 bg-card/40 text-foreground lg:flex lg:flex-col">
-      <div className="flex h-20 items-center border-b border-border/70 px-5">
+    <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-border/70 bg-card text-foreground lg:flex lg:flex-col">
+      <div className="relative flex h-[96px] shrink-0 items-center gap-2 overflow-visible border-b border-border/70 px-4">
         <Link
           href={homeHref}
-          className="group flex items-center gap-3 text-lg font-semibold tracking-tight"
+          className="group flex min-h-0 min-w-0 flex-1 items-center overflow-visible"
+          title="Ir al panel"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-xs font-bold text-emerald-950 shadow-sm">
-            GN
-          </span>
-          <span>
-            <span className="text-emerald-400">GNERAI</span>
-            <span className="ml-1.5 text-foreground/70">OS</span>
+          {/* Escala visual sin aumentar la franja de cabecera: la navegación no baja */}
+          <span className="block w-full max-w-[min(100%,13.5rem)] origin-left scale-[1.58] [will-change:transform]">
+            <GneraiLogo priority heightClass="h-14" className="max-w-full" />
           </span>
         </Link>
+        <ThemeToggle compact />
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Navegacion
+        <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/80">
+          Navegación
         </p>
-        <ul className="space-y-1.5">
+        <ul className="space-y-1">
           {items.map((item) => {
             const Icon = item.icon;
             const active =
@@ -93,19 +135,19 @@ export function Sidebar({
                 <Link
                   href={item.href}
                   className={cn(
-                    "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+                    "group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                     active
-                      ? "bg-primary text-primary-foreground shadow-soft"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-secondary text-foreground"
+                      : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
                   )}
                 >
                   {active && (
-                    <span className="absolute left-0 top-2 h-6 w-1 rounded-r-full bg-emerald-500" />
+                    <span className="absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-r-full bg-brand" />
                   )}
                   <Icon
                     className={cn(
                       "h-4 w-4",
-                      active ? "text-primary-foreground" : "text-muted-foreground/70"
+                      active ? "text-foreground" : "text-muted-foreground/70"
                     )}
                   />
                   {item.label}
@@ -116,25 +158,29 @@ export function Sidebar({
         </ul>
       </nav>
 
-      <div className="space-y-3 border-t border-border/70 bg-background/70 px-4 py-4">
+      <div className="space-y-3 border-t border-border/70 bg-background/60 px-4 py-4">
         <Link
           href="/perfil"
-          className="flex items-center gap-3 rounded-xl border border-border/70 px-2.5 py-2 transition-colors hover:bg-secondary"
+          className="flex items-center gap-3 rounded-md border border-border/70 px-2.5 py-2 transition-colors hover:bg-secondary"
           title="Ver perfil"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-semibold text-emerald-700">
-            {userInitials || "•"}
-          </div>
+          <UserAvatar
+            avatarUrl={avatarUrl}
+            nombre={nombre}
+            apellidos={apellidos}
+            email={userEmail}
+            size="sm"
+          />
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">{userEmail}</p>
             <p className="text-[11px] text-muted-foreground">
-              {role === "colaborador" ? "Colaborador · Ver perfil" : "Ver perfil"}
+              {role === "colaborador" ? "Colaborador" : "Socio"} · Ver perfil
             </p>
           </div>
         </Link>
         <LogoutButton className="w-full justify-start border border-border bg-transparent text-muted-foreground hover:bg-secondary hover:text-foreground" />
-        <div className="px-2 text-[11px] text-muted-foreground/70">
-          Sistema interno · v1
+        <div className="px-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
+          GNERAI OS · v1
         </div>
       </div>
     </aside>
@@ -145,7 +191,7 @@ export function MobileNav({ role }: { role: Role }) {
   const pathname = usePathname();
   const items = navForRole(role);
   return (
-    <nav className="flex items-center gap-1 overflow-x-auto border-b border-border/60 bg-card/40 px-3 py-2 lg:hidden">
+    <nav className="flex items-center gap-1 overflow-x-auto border-b border-border/60 bg-card px-3 py-2 lg:hidden">
       {items.map((item) => {
         const Icon = item.icon;
         const active =
@@ -159,7 +205,7 @@ export function MobileNav({ role }: { role: Role }) {
             className={cn(
               "flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
               active
-                ? "bg-primary text-primary-foreground"
+                ? "bg-foreground text-background"
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}
           >
@@ -168,7 +214,9 @@ export function MobileNav({ role }: { role: Role }) {
           </Link>
         );
       })}
+      <span className="ml-auto pl-2">
+        <ThemeToggle compact />
+      </span>
     </nav>
   );
 }
-

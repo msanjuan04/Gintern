@@ -10,7 +10,6 @@ import { listTicketBoard, type TicketBoardItem } from "@/lib/tickets/queries";
 
 export type DashboardAlertKind =
   | "fires"
-  | "overdue_invoices"
   | "renewals"
   | "rotations"
   | "expired_proposals";
@@ -28,12 +27,6 @@ export type FinancialSnapshot = {
   bankCash: number;
   /** Diferencia con respecto al fin del mes anterior. */
   bankCashDeltaMonth: number;
-  pendingCobro: {
-    total: number;
-    count: number;
-    overdueTotal: number;
-    overdueCount: number;
-  };
   monthResult: {
     /** Net profit del mes en curso (ingresos - gastos operativos). */
     netProfit: number;
@@ -92,54 +85,6 @@ function startOfCurrentMonthISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-async function fetchOverdueInvoiceCount(): Promise<number> {
-  const supabase = await createClient();
-  const today = todayISO();
-  const { count, error } = await supabase
-    .from("invoices")
-    .select("id", { count: "exact", head: true })
-    .in("status", ["sent", "overdue"])
-    .lt("fecha_vencimiento", today);
-  if (error?.code === "PGRST205") return 0;
-  if (error) throw error;
-  return count ?? 0;
-}
-
-async function fetchPendingInvoicesAggregate(): Promise<{
-  total: number;
-  count: number;
-  overdueTotal: number;
-  overdueCount: number;
-}> {
-  const supabase = await createClient();
-  const today = todayISO();
-  const { data, error } = await supabase
-    .from("invoices")
-    .select("total, fecha_vencimiento, status")
-    .in("status", ["sent", "overdue"]);
-  if (error?.code === "PGRST205") {
-    return { total: 0, count: 0, overdueTotal: 0, overdueCount: 0 };
-  }
-  if (error) throw error;
-  const rows = (data ?? []) as Array<{
-    total: number;
-    fecha_vencimiento: string;
-    status: string;
-  }>;
-  let total = 0;
-  let overdueTotal = 0;
-  let overdueCount = 0;
-  for (const row of rows) {
-    const amount = Number(row.total ?? 0);
-    total += amount;
-    if (row.fecha_vencimiento < today) {
-      overdueTotal += amount;
-      overdueCount += 1;
-    }
-  }
-  return { total, count: rows.length, overdueTotal, overdueCount };
-}
-
 async function fetchUpcomingRenewalCount(daysAhead: number): Promise<number> {
   const supabase = await createClient();
   const today = todayISO();
@@ -168,8 +113,7 @@ async function fetchOverdueRotationCount(): Promise<number> {
 }
 
 function computeFinancialSnapshot(
-  bundle: Awaited<ReturnType<typeof getFinanceDataBundle>>,
-  pending: Awaited<ReturnType<typeof fetchPendingInvoicesAggregate>>
+  bundle: Awaited<ReturnType<typeof getFinanceDataBundle>>
 ): FinancialSnapshot {
   const series = bundle.monthlySeries;
   const last6 = series.slice(-6);
@@ -194,7 +138,6 @@ function computeFinancialSnapshot(
   return {
     bankCash: bundle.treasury.bankCash,
     bankCashDeltaMonth,
-    pendingCobro: pending,
     monthResult: {
       netProfit: Number(netProfit.toFixed(2)),
       avg3m: Number(avg3m.toFixed(2)),
@@ -299,10 +242,8 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const [
     financeBundle,
-    pendingInvoices,
     proposals,
     hotClients,
-    overdueInvoiceCount,
     renewalsCount,
     rotationsCount,
     upcomingEvents,
@@ -333,10 +274,8 @@ export async function getDashboardData(): Promise<DashboardData> {
         topExpenses: [],
       },
     })),
-    fetchPendingInvoicesAggregate(),
     listProposals(),
     fetchHotClients(),
-    fetchOverdueInvoiceCount(),
     fetchUpcomingRenewalCount(7),
     fetchOverdueRotationCount(),
     listCalendarEvents(today, sevenDaysAhead, today),
@@ -379,19 +318,6 @@ export async function getDashboardData(): Promise<DashboardData> {
       hint: "Asignado a ti o sin asignar",
     });
   }
-  if (overdueInvoiceCount > 0) {
-    alerts.push({
-      kind: "overdue_invoices",
-      label:
-        overdueInvoiceCount === 1
-          ? "1 factura vencida"
-          : `${overdueInvoiceCount} facturas vencidas`,
-      count: overdueInvoiceCount,
-      href: "/facturas",
-      tone: "destructive",
-      hint: "Pendientes de cobro tras fecha límite",
-    });
-  }
   if (rotationsCount > 0) {
     alerts.push({
       kind: "rotations",
@@ -432,7 +358,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     });
   }
 
-  const finance = computeFinancialSnapshot(financeBundle, pendingInvoices);
+  const finance = computeFinancialSnapshot(financeBundle);
   const pipelineBase = computePipelineSnapshot(proposals);
   const pipeline: PipelineSnapshot = { ...pipelineBase, hotClients };
 

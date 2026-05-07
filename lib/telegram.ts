@@ -47,10 +47,3 @@ export async function sendTelegram(
   }
 }
 
-/** Formatea un importe en euros para enviarlo por Telegram (no usa nbsp). */
-export function fmtMoneyTelegram(value: number): string {
-  return `${value
-    .toFixed(2)
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-    .replace(/\.(\d{2})$/, ",$1")} €`;
-}

@@ -182,7 +182,7 @@ export function ClientForm({
         <p className="text-sm text-destructive">{state.message}</p>
       )}
       {state.status === "saved" && successMessage && (
-        <p className="text-sm text-emerald-700">{successMessage}</p>
+        <p className="text-sm text-brand">{successMessage}</p>
       )}
 
       <div className="flex items-center justify-end gap-2">

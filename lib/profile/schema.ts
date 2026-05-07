@@ -12,7 +12,7 @@ const optionalString = (max: number) =>
 export const profileSchema = z.object({
   nombre: z.preprocess(trim, z.string().min(1, "Nombre obligatorio").max(200)),
   apellidos: optionalString(200),
-  nif: z.preprocess(trim, z.string().min(1, "NIF obligatorio").max(20)),
+  nif: optionalString(20),
   direccion: optionalString(500),
   cp: optionalString(20),
   ciudad: optionalString(120),

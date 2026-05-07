@@ -154,10 +154,10 @@ export function CalendarWorkspace({
                         className={cn(
                           "truncate rounded-sm border px-1.5 py-0.5 text-[10px]",
                           ev.status === "paid"
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                            ? "border-brand/30 bg-brand/10 text-foreground"
                             : ev.status === "pending"
-                              ? "border-amber-200 bg-amber-50 text-amber-900"
-                              : "border-rose-200 bg-rose-50 text-rose-900"
+                              ? "border-amber-500/25 bg-amber-500/10 text-foreground"
+                              : "border-destructive/25 bg-destructive/10 text-foreground"
                         )}
                       >
                         {ev.title}
@@ -191,18 +191,6 @@ export function CalendarWorkspace({
               )}
             >
               Todos
-            </button>
-            <button
-              type="button"
-              onClick={() => setTypeFilter("invoice")}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs",
-                typeFilter === "invoice"
-                  ? "bg-brand text-brand-foreground"
-                  : "border border-border text-muted-foreground hover:bg-secondary"
-              )}
-            >
-              Facturas
             </button>
             <button
               type="button"

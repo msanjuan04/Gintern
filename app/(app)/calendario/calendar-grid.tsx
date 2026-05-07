@@ -105,10 +105,10 @@ export function CalendarGrid({
 function EventChip({ event }: { event: CalendarEvent }) {
   const palette =
     event.status === "paid"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+      ? "border-brand/30 bg-brand/10 text-foreground hover:bg-brand/15"
       : event.status === "pending"
-        ? "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
-        : "border-rose-200 bg-rose-50 text-rose-900 hover:bg-rose-100";
+        ? "border-amber-500/25 bg-amber-500/10 text-foreground hover:bg-amber-500/15"
+        : "border-destructive/25 bg-destructive/10 text-foreground hover:bg-destructive/15";
 
   return (
     <Link

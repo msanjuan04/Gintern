@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 
 export const metadata = {
-  title: "No autorizado · GNERAI Finance",
+  title: "No autorizado · GNERAI OS",
 };
 
 export default function NoAutorizadoPage() {
@@ -20,8 +20,7 @@ export default function NoAutorizadoPage() {
         <CardHeader className="space-y-2 text-center">
           <CardTitle className="text-xl">Acceso no autorizado</CardTitle>
           <CardDescription>
-            Tu correo no está en la lista de socios autorizados de GNERAI
-            Finance.
+            Tu correo no está en la lista de socios autorizados de GNERAI OS.
           </CardDescription>
         </CardHeader>
         <CardContent>

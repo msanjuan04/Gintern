@@ -33,7 +33,7 @@ export async function signInWithPassword(
   if (!isAllowedEmail(email)) {
     return {
       status: "error",
-      message: "Este email no está autorizado para acceder a GNERAI Finance.",
+      message: "Este email no está autorizado para acceder a GNERAI OS.",
     };
   }
 

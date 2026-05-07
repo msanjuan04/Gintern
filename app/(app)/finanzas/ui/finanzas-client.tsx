@@ -332,7 +332,7 @@ export function FinanzasClient({
 
         <TabsContent value="socios" className="space-y-6">
           <div className="grid gap-4 xl:grid-cols-3">
-            <Card className="rounded-2xl border-emerald-300/60 bg-emerald-50/30 xl:col-span-2">
+            <Card className="rounded-2xl border-brand/40 bg-brand/5 xl:col-span-2">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Caja del Banco</CardTitle>
               </CardHeader>
@@ -340,7 +340,7 @@ export function FinanzasClient({
                 <p className="text-sm text-muted-foreground">
                   Saldo físico disponible en banco (ingresos totales absolutos menos gastos totales absolutos).
                 </p>
-                <p className="text-5xl font-semibold tracking-tight tabular-nums text-emerald-700">
+                <p className="text-5xl font-semibold tracking-tight tabular-nums text-foreground">
                   {fmtMoney(initialData.treasury.bankCash)}
                 </p>
                 <div className="flex flex-wrap items-center gap-2 text-xs">

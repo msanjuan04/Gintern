@@ -4,7 +4,7 @@ import { getMyProfile } from "@/lib/profile/queries";
 import { ProfileForm } from "./profile-form";
 
 export const metadata = {
-  title: "Perfil · GNERAI Finance",
+  title: "Perfil · GNERAI OS",
 };
 
 export default async function PerfilPage() {
@@ -12,11 +12,10 @@ export default async function PerfilPage() {
 
   if (!profile) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-lg">
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No se encontró tu fila en <code>public.users</code>. Pide al admin
-            que ejecute el seed o que te dé de alta manualmente.
+            No se encontró tu perfil en el sistema. Contacta con un administrador.
           </CardContent>
         </Card>
       </div>
@@ -24,16 +23,13 @@ export default async function PerfilPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
-      <div>
-        <p className="text-sm text-muted-foreground">{profile.email}</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-          Tu perfil
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Datos que aparecen en tus facturas y configuración personal.
+    <div className="mx-auto max-w-2xl space-y-10 pb-16">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Perfil</h1>
+        <p className="text-sm text-muted-foreground">
+          Tu foto y nombre se muestran al equipo. El resto es opcional.
         </p>
-      </div>
+      </header>
 
       <ProfileForm user={profile} />
     </div>

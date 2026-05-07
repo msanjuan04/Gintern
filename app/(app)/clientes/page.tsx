@@ -21,7 +21,7 @@ import {
 import { listClients } from "@/lib/clients/queries";
 
 export const metadata = {
-  title: "Clientes · GNERAI Finance",
+  title: "Clientes · GNERAI OS",
 };
 
 type ClientStageFilter =

@@ -23,7 +23,7 @@ export function BovedaUnlockControls({ unlocked }: { unlocked: boolean }) {
   if (unlocked) {
     return (
       <form action={lockAction} className="flex items-center gap-2">
-        <span className="text-xs text-emerald-700">Contraseñas desbloqueadas</span>
+        <span className="text-xs text-brand">Contraseñas desbloqueadas</span>
         <button
           type="submit"
           disabled={lockPending}

@@ -15,7 +15,7 @@ import { fmtMoney } from "@/lib/utils";
 import { CalendarWorkspace } from "./calendar-workspace";
 
 export const metadata = {
-  title: "Calendario · GNERAI Finance",
+  title: "Calendario · GNERAI OS",
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -90,7 +90,7 @@ export default async function CalendarioPage({
         <SummaryCard
           label="Cobrado este mes"
           value={cobradoTotal}
-          color="emerald"
+          color="brand"
         />
         <SummaryCard
           label="Pendiente"
@@ -179,14 +179,14 @@ function SummaryCard({
 }: {
   label: string;
   value: number;
-  color: "emerald" | "amber" | "rose";
+  color: "brand" | "amber" | "rose";
 }) {
   const dot =
-    color === "emerald"
-      ? "bg-emerald-500"
+    color === "brand"
+      ? "bg-brand"
       : color === "amber"
         ? "bg-amber-500"
-        : "bg-rose-500";
+        : "bg-destructive";
   return (
     <Card>
       <CardContent className="flex flex-col gap-2 p-5">

@@ -45,7 +45,7 @@ const STATUS_PILL: Record<TicketBoardItem["status"], string> = {
   in_progress: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
   blocked: "bg-destructive/15 text-destructive",
   in_review: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
-  done: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  done: "bg-brand/15 text-brand",
 };
 
 const PRIORITY_BAR: Record<TicketBoardItem["priority"], string> = {
@@ -104,12 +104,12 @@ function avatarColor(name: string | null | undefined): string {
     hash = (hash * 31 + name.charCodeAt(i)) | 0;
   }
   const palette = [
-    "bg-blue-500/20 text-blue-700 dark:text-blue-300",
-    "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300",
-    "bg-violet-500/20 text-violet-700 dark:text-violet-300",
-    "bg-amber-500/20 text-amber-700 dark:text-amber-300",
-    "bg-rose-500/20 text-rose-700 dark:text-rose-300",
-    "bg-cyan-500/20 text-cyan-700 dark:text-cyan-300",
+    "bg-secondary text-foreground/80",
+    "bg-brand/15 text-brand",
+    "bg-foreground/10 text-foreground/80",
+    "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+    "bg-destructive/15 text-destructive",
+    "bg-secondary/70 text-foreground/70",
   ];
   return palette[Math.abs(hash) % palette.length];
 }
@@ -505,8 +505,8 @@ export function TicketsBoard({
                                   {ticket.code ?? "TK-pendiente"}
                                 </span>
                                 {ticket.has_running_timer && (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-brand/15 px-1.5 py-0.5 text-[10px] font-medium text-brand">
+                                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
                                     Activo
                                   </span>
                                 )}

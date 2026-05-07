@@ -32,7 +32,7 @@ export type UserRow = {
   email: string;
   nombre: string;
   apellidos: string | null;
-  nif: string;
+  nif: string | null;
   direccion: string | null;
   cp: string | null;
   ciudad: string | null;
@@ -42,6 +42,7 @@ export type UserRow = {
   iva_pct: number | null;
   share_gnerai: number | null;
   telegram_chat_id: string | null;
+  avatar_url: string | null;
   role: UserRole;
   created_at: string;
 };

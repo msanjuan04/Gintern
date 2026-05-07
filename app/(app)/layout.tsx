@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { GneraiLogo } from "@/components/gnerai-logo";
+import { UserAvatar } from "@/components/user-avatar";
 import { getEmailRole, isAllowedEmail } from "@/lib/auth/allowlist";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,22 +25,27 @@ export default async function AppLayout({
 
   const role = getEmailRole(user.email) ?? "socio";
 
-  const initials = (user.email ?? "??")
-    .split("@")[0]
-    .split(/[._-]/)
-    .map((s) => s[0]?.toUpperCase() ?? "")
-    .join("")
-    .slice(0, 2);
+  const { data: profileRow } = await supabase
+    .from("users")
+    .select("avatar_url, nombre, apellidos")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const avatarUrl = profileRow?.avatar_url ?? null;
+  const nombre = profileRow?.nombre ?? null;
+  const apellidos = profileRow?.apellidos ?? null;
 
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar
         role={role}
         userEmail={user.email ?? "Sin email"}
-        userInitials={initials || "•"}
+        avatarUrl={avatarUrl}
+        nombre={nombre}
+        apellidos={apellidos}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between gap-4 border-b border-border/60 bg-card/40 px-4 lg:hidden lg:px-8">
+        <header className="flex h-20 items-center justify-between gap-4 border-b border-border/60 bg-card px-4 lg:hidden lg:px-8">
           <MobileHeaderTitle />
           <div className="flex items-center gap-3 lg:hidden">
             <Link
@@ -52,9 +59,13 @@ export default async function AppLayout({
                   {role === "colaborador" ? "Colaborador" : "Ver perfil"}
                 </span>
               </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand">
-                {initials || "•"}
-              </div>
+              <UserAvatar
+                avatarUrl={avatarUrl}
+                nombre={nombre}
+                apellidos={apellidos}
+                email={user.email ?? ""}
+                size="sm"
+              />
             </Link>
             <LogoutButton />
           </div>
@@ -70,11 +81,8 @@ export default async function AppLayout({
 
 function MobileHeaderTitle() {
   return (
-    <div className="lg:hidden">
-      <span className="text-lg font-semibold tracking-tight">
-        <span className="text-brand">GNERAI</span>
-        <span className="ml-1.5 text-foreground/80">Finance</span>
-      </span>
-    </div>
+    <Link href="/dashboard" className="flex min-w-0 shrink items-center lg:hidden" title="Ir al panel">
+      <GneraiLogo compact priority />
+    </Link>
   );
 }

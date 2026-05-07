@@ -1,4 +1,4 @@
-// Allowlist de emails autorizados a entrar en GNERAI Finance.
+// Allowlist de emails autorizados a entrar en GNERAI OS.
 // Formato del env var ALLOWED_EMAILS:
 //   email[:role],email[:role],...
 // donde role ∈ {socio, colaborador}. Si se omite, se asume socio.

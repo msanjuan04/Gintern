@@ -5,12 +5,10 @@ import {
   ArrowUpRight,
   CalendarClock,
   CheckCircle2,
-  CreditCard,
   FileText,
   Flame,
   KeyRound,
   PiggyBank,
-  Receipt,
   RefreshCw,
   Target,
   TrendingDown,
@@ -37,7 +35,6 @@ export const metadata = {
 
 const ALERT_ICON: Record<DashboardAlert["kind"], typeof Flame> = {
   fires: Flame,
-  overdue_invoices: Receipt,
   renewals: RefreshCw,
   rotations: KeyRound,
   expired_proposals: FileText,
@@ -45,10 +42,10 @@ const ALERT_ICON: Record<DashboardAlert["kind"], typeof Flame> = {
 
 const STATUS_PILL: Record<string, string> = {
   backlog: "bg-secondary text-secondary-foreground",
-  in_progress: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+  in_progress: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
   blocked: "bg-destructive/15 text-destructive",
-  in_review: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
-  done: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  in_review: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+  done: "bg-brand/15 text-brand",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -73,12 +70,12 @@ function avatarColor(name: string | null | undefined): string {
     hash = (hash * 31 + name.charCodeAt(i)) | 0;
   }
   const palette = [
-    "bg-blue-500/20 text-blue-700 dark:text-blue-300",
-    "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300",
-    "bg-violet-500/20 text-violet-700 dark:text-violet-300",
-    "bg-amber-500/20 text-amber-700 dark:text-amber-300",
-    "bg-rose-500/20 text-rose-700 dark:text-rose-300",
-    "bg-cyan-500/20 text-cyan-700 dark:text-cyan-300",
+    "bg-secondary text-foreground/80",
+    "bg-brand/15 text-brand",
+    "bg-foreground/10 text-foreground/80",
+    "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+    "bg-destructive/15 text-destructive",
+    "bg-secondary/70 text-foreground/70",
   ];
   return palette[Math.abs(hash) % palette.length];
 }
@@ -147,14 +144,14 @@ export default async function DashboardPage() {
 function AlertsBar({ alerts }: { alerts: DashboardAlert[] }) {
   if (alerts.length === 0) {
     return (
-      <Card className="border-emerald-500/30 bg-emerald-500/5">
+      <Card className="border-brand/30 bg-brand/5">
         <CardContent className="flex items-center gap-3 py-3">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <CheckCircle2 className="h-5 w-5 text-brand" />
           <div>
-            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+            <p className="text-sm font-medium text-foreground">
               Todo bajo control
             </p>
-            <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80">
+            <p className="text-xs text-muted-foreground">
               No hay fuegos, vencimientos ni rotaciones críticas pendientes.
             </p>
           </div>
@@ -224,7 +221,7 @@ function FinancialSection({ finance }: { finance: FinancialSnapshot }) {
           Ver detalle →
         </Link>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <FinanceKpi
           label="Caja en banco"
           value={fmtMoney(finance.bankCash)}
@@ -232,18 +229,6 @@ function FinancialSection({ finance }: { finance: FinancialSnapshot }) {
           delta={finance.bankCashDeltaMonth}
           deltaLabel="este mes"
           href="/finanzas"
-        />
-        <FinanceKpi
-          label="Pendiente de cobro"
-          value={fmtMoney(finance.pendingCobro.total)}
-          icon={CreditCard}
-          subtitle={`${finance.pendingCobro.count} facturas${
-            finance.pendingCobro.overdueCount > 0
-              ? ` · ${finance.pendingCobro.overdueCount} vencidas`
-              : ""
-          }`}
-          accent={finance.pendingCobro.overdueCount > 0 ? "destructive" : "neutral"}
-          href="/facturas"
         />
         <FinanceKpi
           label="Resultado del mes"
@@ -300,7 +285,7 @@ function FinanceKpi({
 }) {
   const valueColor =
     accent === "success"
-      ? "text-emerald-600 dark:text-emerald-400"
+      ? "text-brand"
       : accent === "destructive"
         ? "text-destructive"
         : "";
@@ -323,9 +308,7 @@ function FinanceKpi({
               {delta !== undefined && deltaLabel && (
                 <span
                   className={`inline-flex items-center gap-0.5 font-medium ${
-                    delta >= 0
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-destructive"
+                    delta >= 0 ? "text-brand" : "text-destructive"
                   }`}
                 >
                   {delta >= 0 ? (
@@ -373,12 +356,12 @@ function MonthlyBars({
           >
             <div className="flex h-28 w-full items-end gap-1">
               <div
-                className="flex-1 rounded-t bg-emerald-500/70 transition-all hover:bg-emerald-500"
+                className="flex-1 rounded-t bg-brand/70 transition-all hover:bg-brand"
                 style={{ height: `${Math.max(2, incomeHeight)}%` }}
                 title={`Ingresos: ${fmtMoney(point.income)}`}
               />
               <div
-                className="flex-1 rounded-t bg-rose-500/70 transition-all hover:bg-rose-500"
+                className="flex-1 rounded-t bg-foreground/70 transition-all hover:bg-foreground"
                 style={{ height: `${Math.max(2, expenseHeight)}%` }}
                 title={`Gastos: ${fmtMoney(point.expense)}`}
               />
@@ -388,9 +371,7 @@ function MonthlyBars({
             </p>
             <p
               className={`text-[10px] tabular-nums ${
-                net >= 0
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-destructive"
+                net >= 0 ? "text-brand" : "text-destructive"
               }`}
             >
               {net >= 0 ? "+" : "−"}
@@ -710,7 +691,7 @@ function BottomSection({
                           ? "bg-destructive"
                           : tone === "warning"
                             ? "bg-amber-500"
-                            : "bg-emerald-500"
+                            : "bg-brand"
                       }`}
                       style={{
                         width: `${Math.max(2, goal.progressPercent)}%`,
